@@ -1,13 +1,15 @@
 import time
 import random
 import requests
+from itertools import product
+import pandas as pd
 
 
 class Job104Spider():
     def search(self, max_mun=150): 
         """搜尋職缺"""
 
-        # 這裡的 max_mun 指前面頁的職缺筆數(即使總值缺數更大，但上限僅供到 150 頁)
+        # 這裡的 max_mun 指前面頁的職缺筆數(即使總值缺數更大，但上限僅供到 150 頁)，設為 -1 則表示翻到最大數量
         # 每頁提供 22 筆職缺資料，所以最多只能找 150 * 22 = 3300 筆職缺資料
 
         jobs = []
@@ -22,12 +24,13 @@ class Job104Spider():
 
         page = 1
         pagesize = 20
-        while len(jobs) < max_mun:
+        while 1 if max_mun == -1 else len(jobs) < max_mun:
             params = f'{query}&page={page}&pagesize={pagesize}'
             r = requests.get(url, params=params, headers=headers)
             if r.status_code != requests.codes.ok:
                 print('請求失敗', r.status_code)
                 data = r.json()
+                print(data['status'], data['statusMsg'], data['errorMsg'])
                 break
 
             datas = r.json()
@@ -49,7 +52,7 @@ class Job104Spider():
     def search(self, max_mun=150, filter_params=None): 
         """搜尋職缺"""
 
-        # 這裡的 max_mun 指前面頁的職缺筆數(即使總值缺數更大，但上限僅供到 150 頁)
+        # 這裡的 max_mun 指前面頁的職缺筆數(即使總值缺數更大，但上限僅供到 150 頁)，設為 -1 則表示翻到最大數量
         # 每頁提供 22 筆職缺資料，所以最多只能找 150 * 22 = 3300 筆職缺資料
 
         jobs = []
@@ -68,19 +71,22 @@ class Job104Spider():
 
         page = 1
         pagesize = 20
-        while len(jobs) < max_mun:
+        while 1 if max_mun == -1 else len(jobs) < max_mun:
             params = f'{query}&page={page}&pagesize={pagesize}'
             r = requests.get(url, params=params, headers=headers)
             if r.status_code != requests.codes.ok:
                 print('請求失敗', r.status_code)
                 data = r.json()
+                print(data['status'], data['statusMsg'], data['errorMsg'])
                 break
 
             datas = r.json()
             total_count = datas['metadata']['pagination']['total']
 
-            # 將每一頁的職缺網址代碼加入 jobs
-            jobs.extend(data['link']['job'].split('/job/')[-1] for data in datas['data'])
+            # 將每一頁的全部職缺網址代碼加入 jobs
+            page_data = [data['link']['job'].split('/job/')[-1] for data in datas['data']]
+            print(page_data)
+            jobs.extend(page_data)
             
             # 如果是最後一頁或空頁，就跳出迴圈
             if (page == datas['metadata']['pagination']['lastPage']) or (datas['metadata']['pagination']['lastPage'] == 0):
@@ -106,72 +112,39 @@ class Job104Spider():
             print('請求失敗', r.status_code)
             return
 
-        data = r.json()
+        job_data = r.json()['data']
 
-        # 職缺資料細節
+        salary_type = {
+            10: '面議',
+            50: '有薪',
+            30: '每小時工讀',
+        }
+        # 職缺 (全職、兼職、長短期假日工讀..)
+        workType = job_data['jobDetail']['workType']
         data_info = {
-            data['data']['welfare']['tag'] + data['data']['welfare']['legalTag'],
-            data['data']['jobDetail'],
+            '更新日期': job_data['header']['appearDate'],
+            '學歷': job_data['condition']['edu'],
+            '工作經驗': job_data['condition']['workExp'],
+            '薪資類型 (面議 / 有薪資)': salary_type[job_data['jobDetail']['salaryType']],
+            '最高薪資': int(job_data['jobDetail']['salaryMax']),
+            '最低薪資': int(job_data['jobDetail']['salaryMin']),
+            '工作型態': '全職' if len(workType) == 0 else ''.join([item for item in workType]),  
+            '職缺名稱': job_data['header']['jobName'],
+            '描述': job_data['jobDetail']['jobDescription'],
+            '公司名稱': job_data['header']['custName'],
+            '工作縣市': job_data['jobDetail']['addressArea'],
+            '工作里區': job_data['jobDetail']['addressRegion'][3:],
+            '工作時段': job_data['jobDetail']['workPeriod'],
+            '職缺 104 網址': url,
+            'job_104_company_url': job_data['header']['custUrl'],
+            '法定福利': ''.join(job_data['welfare']['legalTag']),
+            '其他福利': job_data['welfare']['welfare'],
         }
         
         # 隨機等待 3~5 秒
         time.sleep(random.uniform(3, 5))
 
-    def search_job_transform(self, job_data):
-        """將職缺資料轉換格式、補齊資料"""
-        job_url = f"https:{job_data['link']['job']}"
-        job_company_url = f"https:{job_data['link']['cust']}"
-        salary_high = int(job_data['salaryLow'])
-        salary_low = int(job_data['salaryHigh'])
-
-        salary_type = {
-            10: '面議',
-            50: '有薪',
-        }
-
-        edu = {
-            1: '高中以下',
-            2: '高中',
-            3: '專科',
-            4: '大學',
-            5: '碩士',
-            6: '博士',
-        }
-
-        period = {
-            0: '不拘',
-            1: 'bug 修正回報',
-            2: '1年以上',
-            3: '2年以上',
-            4: '3年以上',
-        }
-
-        jobRo = {
-            1: '全職',
-            2: '工讀',
-        }
-
-        job = {
-            'appear_date': job_data['appearDate'],  # 更新日期
-            'education': edu[max(job_data['optionEdu'])],  # 最高學歷
-            'period': period[job_data['period']],  # 幾年以上工作經驗
-            'salary_type': salary_type[job_data['s10']],  # 薪資類型 (面議 / 有薪資)
-            'salary_high': salary_high,  # 薪資最高
-            'salary_low': salary_low,  # 薪資最低
-            'jobRo': jobRo[job_data['jobRo']],  # 職缺工作型態 (全職、兼職、工讀)
-            'name': job_data['jobName'],  # 職缺名稱
-            'desc': job_data['descSnippet'],  # 描述
-            'company_name': job_data['custName'],  # 公司名稱
-            'company_city': job_data['jobAddrNoDesc'][:3],  # 工作縣市
-            'company_district': job_data['jobAddrNoDesc'][3:],  # 工作里區
-            'time': job_data['d3'],  # 工作時段
-            'job_url': job_url,  # 職缺網頁
-            'job_104_company_url': job_company_url,  # 公司 104 介紹網頁
-            'tags': job_data['tags'],  # 標籤
-        }
-        
-        return job
-
+        return data_info
 
 if __name__ == "__main__":
     job104_spider = Job104Spider()
@@ -187,22 +160,34 @@ if __name__ == "__main__":
     mul_filter_params = {
         'area': '6001016000',  # (地區) 複
         's9': '1',  # (上班時段) 複 日班,夜班,大夜班,假日班
-        'jobexp': '1,3,5,10,99',  # (經歷要求) 1年以下,1-3年,3-5年,5-10年,10年以上
+        'jobexp': '1,3,5,10,99',  # (經歷要求) 1年以下 1, 1-3年 2, 3-5年 3, 5-10年 4, 10年以上 5
         'zone': '16',  # (公司類型) 16:上市上櫃 5:外商一般 4:外商資訊
-        'edu': '1,2,3,4,5,6',  # (學歷要求) 高中職以下,高中職,專科,大學,碩士,博士
-        # 'excludeJobKeyword': '科技',  # 排除關鍵字
+        'edu': '1,2,3,4,5',  # (學歷要求) 高中職以下 1,高中職 2,專科 3,大學 4,碩士 5,博士 6
     }
 
-    # 委託排列組合非複合參數執行搜索
-    filter_params = uni_filter_params | mul_filter_params
-    total_count, jobs = job104_spider.search('python', max_mun=10, filter_params=filter_params)
+    # 解析可複合篩選條件的所有可能組合
+    keys = mul_filter_params.keys()
+    values = [v.split(',') for v in mul_filter_params.values()]
+    combinations = list(product(*values))  # 產生所有可能組合
 
     # 轉換成 set 合併重複職缺
+    alljobs_set = set()
+    for combo in combinations:
+        filter_params = {**uni_filter_params, **dict(zip(keys, combo))}
+        total_count, jobs = job104_spider.search('python', max_mun=10, filter_params=filter_params)
+        alljobs_set.update(jobs)  # 用 set.update() 合併職缺 ID，去除重複
+    
+    print('搜尋結果職缺總數：', len(alljobs_set))
 
+    # 逐一取得職缺詳細資料
+    job_details = []
+    for job_id in alljobs_set:
+        job_info = job104_spider.get_job(job_id)
+        job_details.append(job_info)
 
-    #print('搜尋結果職缺總數：', )
+    # 將職缺資料存入 Excel
+    df = pd.DataFrame(job_details)
+    df.to_excel('104jobs.xlsx', index=False)
 
-    # 待交叉比對職缺資料結果再行取用
-    for jobid in jobs:
-        job104_spider.get_job(jobid)
-        #print(jobs)
+    print("職缺資料已成功寫入 jobs.xlsx")
+        
