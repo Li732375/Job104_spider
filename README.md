@@ -34,7 +34,7 @@ pip install requests pandas
 ### 主要類別：`Job104Spider`
 
 1. **search(max_mun=150, filter_params=None)**  
-   用於搜尋職缺，您可以指定搜尋條件，並設定搜尋的最大職缺數量 `max_mun`。若 `max_mun` 設為 -1，則會搜尋所有可用的職缺。更多 `filter_params` 參數，見 ![wiki](https://github.com/Li732375/Job104_spider/wiki)。
+   用於搜尋職缺，您可以指定搜尋條件，並設定搜尋的最大職缺數量 `max_mun`。若 `max_mun` 設為 -1，則會搜尋所有可用的職缺。更多 `filter_params` 參數，見 [wiki](https://github.com/Li732375/Job104_spider/wiki)。
 
 2. **get_job(job_id)**  
    用於獲取某一職缺的詳細資料，返回一個包含職缺詳細資訊的字典。
