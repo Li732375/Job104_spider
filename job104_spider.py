@@ -1,8 +1,11 @@
+# -*- coding: utf-8 -*-
+
 import time
 import random
 import requests
 from itertools import product
 import pandas as pd
+import json
 
 # 設定標準輸出編碼為 utf-8
 import sys
@@ -27,7 +30,8 @@ class Job104Spider():
         
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
-            'Referer': 'https://www.104.com.tw/jobs/search/',
+            'Referer': 'https://www.104.com.tw/jobs/search/?jobsource=index_s&mode=s&page=1',
+            #'Referer': 'https://www.104.com.tw/jobs/search/',
         }
         
         page = 1
@@ -38,10 +42,16 @@ class Job104Spider():
             
             if r.status_code != requests.codes.ok:
                 print(f'職缺清單請求失敗 {r.status_code}')
+                print(f'當前 encoding: {r.encoding}')
                 print(r.text)
                 break
             
             datas = r.json()
+            # 最後資料覆寫入指定檔案，協助除錯
+            with open('job_search_list.json', 'w', encoding='utf-8') as f:
+                f.write('{' + f'encoding: {r.encoding}' + '}\n')
+                json.dump(datas, f, ensure_ascii=False, indent=4)  # 使用 indent=4 美化 JSON
+
             total_count = datas['metadata']['pagination']['total']
             
             # 將每一頁的職缺網址代碼加入 jobs
@@ -51,11 +61,12 @@ class Job104Spider():
             if page == datas['metadata']['pagination']['lastPage'] or datas['metadata']['pagination']['lastPage'] == 0:
                 break
             
-            page += 1
             time.sleep(random.uniform(3, 5))
-            print('清單資料緩衝計時中，請稍後...')
+            print(f'清單資料({len(jobs)})，緩衝中...')
+
+            page += 1
         
-        return total_count, jobs
+        return total_count, jobs[:max_num]
 
     def get_job(self, job_id):
         """取得職缺網址詳細資料"""
@@ -63,24 +74,34 @@ class Job104Spider():
 
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
-            'Referer': 'https://www.104.com.tw/job/{job_id}',
+            'Referer': f'https://www.104.com.tw/job/{job_id}',
         }
 
         r = requests.get(url, headers=headers)
         if r.status_code != requests.codes.ok:
             print('get_job 請求失敗', r.status_code)
+            print(f'當前 encoding: {r.encoding}')
             print(r.text)
             return
 
         job_data = r.json()['data']
+        # 最後資料覆寫入指定檔案，協助除錯
+        with open('job_url.json', 'w', encoding='utf-8') as f:
+            f.write('{' + f'encoding: {r.encoding}' + '}\n')
+            f.write('{' + f'https://www.104.com.tw/job/{job_id}' + '}\n')
+            json.dump(job_data, f, ensure_ascii=False, indent=4)  # 使用 indent=4 美化 JSON
 
         salary_type = {
             10: '面議',
+            20: '論件計酬',
+            30: '時薪',
             50: '有薪',
-            30: '每小時工讀',
+            60: '年薪',
         }
 
-        workType = job_data['jobDetail']['workType']  # 職缺 (全職、兼職、長短期假日工讀..)
+        # 職缺 (全職、兼職、長短期假日工讀..)
+        workType = '全職' if len(job_data['jobDetail']['workType']) == 0 else ''.join([item for item in job_data['jobDetail']['workType']])
+        
         data_info = {
             '更新日期': job_data['header']['appearDate'],
             '學歷': job_data['condition']['edu'],
@@ -88,7 +109,7 @@ class Job104Spider():
             '薪資類型 (面議 / 有薪資)': salary_type[job_data['jobDetail']['salaryType']],
             '最高薪資': int(job_data['jobDetail']['salaryMax']),
             '最低薪資': int(job_data['jobDetail']['salaryMin']),
-            '工作型態': '全職' if len(workType) == 0 else ''.join([item for item in workType]),  
+            '工作型態': workType,  
             '職缺名稱': job_data['header']['jobName'],
             '描述': job_data['jobDetail']['jobDescription'],
             '公司名稱': job_data['header']['custName'],
@@ -96,14 +117,13 @@ class Job104Spider():
             '工作里區': job_data['jobDetail']['addressRegion'][3:],
             '工作時段': job_data['jobDetail']['workPeriod'],
             '職缺 104 網址': url,
-            'job_104_company_url': job_data['header']['custUrl'],
+            '職缺 104 公司網址': job_data['header']['custUrl'],
             '法定福利': ''.join(job_data['welfare']['legalTag']),
             '其他福利': job_data['welfare']['welfare'],
         }
         
         # 隨機等待 3~5 秒
         time.sleep(random.uniform(3, 5))
-        print('職缺資料緩衝計時中，請稍後...')
 
         return data_info
 
@@ -130,16 +150,25 @@ if __name__ == "__main__":
     keys = mul_filter_params.keys()
     values = [v.split(',') for v in mul_filter_params.values()]
     combinations = list(product(*values))  # 產生所有可能組合
-
-    # 轉換成 set 合併重複職缺
+    print('搜尋條件組合總數：', len(combinations))
+    
+    """  
+    # 使用篩選條件，轉換成 set 合併重複職缺
     alljobs_set = set()
     for combo in combinations:
         filter_params = {**uni_filter_params, **dict(zip(keys, combo))}
-        #total_count, jobs = job104_spider.search(max_mun=10, filter_params=filter_params)
-        total_count, jobs = job104_spider.search(22)
+        total_count, jobs = job104_spider.search(max_num=10, filter_params=filter_params)
         alljobs_set.update(jobs)  # 用 set.update() 合併職缺 ID，去除重複
-    
-    print('搜尋結果職缺總數：', len(alljobs_set))
+
+    print('職缺總數：', len(alljobs_set))
+    """
+    # 不使用篩選條件
+    total_count, jobs = job104_spider.search(100)
+    alljobs_set = set(jobs)
+
+    # 進度符號
+    progress_symbols = ['|', '/', '-', '\\']  # 定義進度符號的順序
+    progress_index = 0  # 進度符號的初始索引
 
     # 逐一取得職缺詳細資料
     job_details = []
@@ -147,9 +176,17 @@ if __name__ == "__main__":
         job_info = job104_spider.get_job(job_id)
         job_details.append(job_info)
 
+        # 更新進度符號顯示（動態顯示 | / - \）
+        sys.stdout.write(f'\r職缺資料({len(job_details)})，緩衝中... {progress_symbols[progress_index]}') 
+        sys.stdout.flush()  # 強制刷新輸出到螢幕
+        
+        # 更新進度符號索引
+        progress_index = (progress_index + 1) % len(progress_symbols)
+    
+    print()  # 讓進度列結束後換行
+
     # 將職缺資料存入 Excel
     df = pd.DataFrame(job_details)
     df.to_excel('104jobs.xlsx', index=False)
 
-    print("職缺資料已成功寫入 jobs.xlsx")
-        
+    print("職缺資料已寫入 jobs.xlsx")
