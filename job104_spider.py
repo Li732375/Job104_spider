@@ -59,7 +59,7 @@ class Job104Spider():
             datas = r.json()
             # 最後資料覆寫入指定檔案，協助除錯
             with open('final_job_search_list.json', 'w', encoding='utf-8') as f:
-                f.write('{' + f'encoding: {r.encoding}' + '}\n')
+                f.write('{' + f'"encoding": "{r.encoding}"' + '}\n')
                 json.dump(datas, f, ensure_ascii=False, indent=4)
 
             total_count = datas['metadata']['pagination']['total']
@@ -73,7 +73,7 @@ class Job104Spider():
                 datas['metadata']['pagination']['lastPage'] == 0:
                 break
             
-            print(f'篩選條件清單資料({len(jobs)})，緩衝中...')
+            print(f'清單資料({len(jobs)}筆)，緩衝中...')
             time.sleep(random.uniform(3, 5))
 
             page += 1
@@ -117,6 +117,7 @@ class Job104Spider():
             10: '面議',
             20: '論件計酬',
             30: '時薪',
+            40: '日薪',
             50: '有薪',
             60: '年薪',
         }
@@ -168,8 +169,7 @@ if __name__ == "__main__":
         's9': '1',  # (上班時段) 日班 1, 夜班 2, 大夜班 4, 假日班 8
         'jobexp': '1,3',  # (經歷) 不拘/1年以下 1, 1-3年 3, 3-5年 5, 5-10年 10, 10年以上 99
         'edu': '3,4,5',  # (學歷) 高中職以下 1,高中職 2,專科 3,大學 4,碩士 5,博士 6
-        'jobcat': '2007001004,2007001018,2007001022,2007001020,2007001012,\
-            2002001011,2007001009,2007001010,2016001013',  # (職位類別)
+        'jobcat': '2007001004,2007001018,2007001022,2007001020,2007001012,2002001011,2007001009,2007001010,2016001013',  # (職位類別)
         #'wt': '1,2,4,8,16',  # (工讀類型) 長期 1, 短期 2, 假日 4, 寒假 8, 暑假 16
     }
 
@@ -191,9 +191,10 @@ if __name__ == "__main__":
         
         # 計算當前進度百分比
         progress = (idx / len(combinations)) * 100
-        print(f"處理進度：{progress:3.2f} % ({idx}/{len(combinations)})", end='\r')
+        print(f"更換篩選條件：{progress:>3.2f} % ({idx}/{len(combinations)})", end='\r')
 
-        time.sleep(random.uniform(0.4, 1))
+        # 若是常逢錯誤 11100，可以考慮放緩頻率
+        time.sleep(random.uniform(0.4, 1.8))
         
         alljobs_set.update(jobs)  # 用 set.update() 合併職缺 ID，去除重複
 
@@ -205,6 +206,7 @@ if __name__ == "__main__":
     print('總職缺數：', len(alljobs_set))
 
     # 逐一取得職缺詳細資料
+    print('逐一取得職缺詳細資料...')
     job_details = []
     for job_id in alljobs_set:
         job_info = job104_spider.get_job(job_id)
