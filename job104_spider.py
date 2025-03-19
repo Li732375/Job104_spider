@@ -48,7 +48,7 @@ class Job104Spider():
             
             datas = r.json()
             # 最後資料覆寫入指定檔案，協助除錯
-            with open('job_search_list.json', 'w', encoding='utf-8') as f:
+            with open('final_job_search_list.json', 'w', encoding='utf-8') as f:
                 f.write('{' + f'encoding: {r.encoding}' + '}\n')
                 json.dump(datas, f, ensure_ascii=False, indent=4)  # 使用 indent=4 排版
 
@@ -88,7 +88,7 @@ class Job104Spider():
 
         job_data = r.json()['data']
         # 最後資料覆寫入指定檔案，協助除錯
-        with open('job_url.json', 'w', encoding='utf-8') as f:
+        with open('final_job_url.json', 'w', encoding='utf-8') as f:
             f.write('{' + f'"encoding": "{r.encoding}"' + ', ' + f'"URL": "https://www.104.com.tw/job/{job_id}"' + '}\n')
             json.dump(job_data, f, ensure_ascii=False, indent=4)  # 使用 indent=4 美化 JSON
 
@@ -148,8 +148,8 @@ if __name__ == "__main__":
         'jobexp': '0,1,3',  # (經歷要求) 不拘 0, 1年以下 1, 1-3年 3, 3-5年 5, 5-10年 10, 10年以上 99
         'edu': '1,2,3,4,5',  # (學歷要求) 高中職以下 1,高中職 2,專科 3,大學 4,碩士 5,博士 6
         'jobcat': '2007001004,2007001018,2007001022,2007001020,2007001012,\
-            2002001011,2007001009,2007001010,2016001013',
-        #'wt': '1,2,4,8,16',  # 長期 1, 短期 2, 假日 4, 寒假 8, 暑假 16
+            2002001011,2007001009,2007001010,2016001013',  # (職位類別)
+        #'wt': '1,2,4,8,16',  # (工讀類型) 長期 1, 短期 2, 假日 4, 寒假 8, 暑假 16
     }
 
     # 解析可複合篩選條件的所有可能組合
@@ -160,6 +160,7 @@ if __name__ == "__main__":
     
     # 每個條件組合取得的職缺數
     max_num = 100
+
     # 使用篩選條件，轉換成 set 合併重複職缺
     alljobs_set = set()
     for idx, combo in enumerate(combinations, start=1):  # 避免從 0 開始影響百分比計算
@@ -175,12 +176,12 @@ if __name__ == "__main__":
         
         alljobs_set.update(jobs)  # 用 set.update() 合併職缺 ID，去除重複
 
-    print('職缺總數：', len(alljobs_set))
     """
     # 不使用篩選條件
-    total_count, jobs = job104_spider.search(100)
+    total_count, jobs = job104_spider.search(max_num)
     alljobs_set = set(jobs)
     """ 
+    print('總職缺數：', len(alljobs_set))
 
     """ 
     # 進度符號
@@ -195,7 +196,7 @@ if __name__ == "__main__":
         job_details.append(job_info)
 
         """
-        # 更新進度符號顯示（動態顯示 | / - \）
+        # 更新進度符號顯示（動態顯示 | / - \)
         sys.stdout.write(f'\r職缺資料({len(job_details)})，緩衝中... {progress_symbols[progress_index]}') 
         sys.stdout.flush()  # 強制刷新輸出到螢幕
         # 更新進度符號索引
@@ -208,6 +209,7 @@ if __name__ == "__main__":
 
     # 將職缺資料存入 Excel
     df = pd.DataFrame(job_details)
-    df.to_excel('104jobs.xlsx', index=False)
-
-    print("職缺資料已寫入 104jobs.xlsx")
+    Output_Excel_FileName = '104jobs.xlsx'
+    df.to_excel(Output_Excel_FileName, index=False)
+    
+    print(f"職缺資料已寫入 {Output_Excel_FileName}")
