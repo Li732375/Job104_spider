@@ -40,17 +40,27 @@ class Job104Spider():
             r = requests.get(url, params=params, headers=headers)
             
             if r.status_code != requests.codes.ok:
-                print(f'{url}?{params}')  # 顯示當前請求的 URL
-                print(f'職缺清單請求失敗 {r.status_code}')
-                print(f'當前 encoding: {r.encoding}')
-                print(r.text)
+                print(f'URL：{url}?{params}')  # 顯示當前請求的 URL
+                print(f'職缺清單請求失敗，狀態碼 {r.status_code}')
+                print(f'encoding: {r.encoding}')
+                
+                # 錯誤訊息覆寫入指定檔案，協助除錯
+                with open('error_message.json', 'w', encoding='utf-8') as f:
+                    json.dump(r.json(), f, ensure_ascii=False, indent=4)  # 使用 indent=4 排版
+                
+                print(f"完整錯誤訊息：{r.text}")
+                print(f"錯誤代碼 {r.json()['error']['code']}")
+
+                inside_error = json.loads(r.json()['error']['message'])
+                print(f"錯誤訊息：{inside_error['error']['message']}")
+                print(f"錯誤細節：{inside_error['error']['details']}")
                 break
             
             datas = r.json()
             # 最後資料覆寫入指定檔案，協助除錯
             with open('final_job_search_list.json', 'w', encoding='utf-8') as f:
                 f.write('{' + f'encoding: {r.encoding}' + '}\n')
-                json.dump(datas, f, ensure_ascii=False, indent=4)  # 使用 indent=4 排版
+                json.dump(datas, f, ensure_ascii=False, indent=4)
 
             total_count = datas['metadata']['pagination']['total']
             
@@ -81,9 +91,20 @@ class Job104Spider():
 
         r = requests.get(url, headers=headers)
         if r.status_code != requests.codes.ok:
-            print('get_job 請求失敗', r.status_code)
-            print(f'當前 encoding: {r.encoding}')
-            print(r.text)
+            print(f'URL：{url}')  # 顯示當前請求的 URL
+            print(f'職缺資訊請求失敗，狀態碼 {r.status_code}')
+            print(f'encoding: {r.encoding}')
+            
+            # 錯誤訊息覆寫入指定檔案，協助除錯
+            with open('error_message.json', 'w', encoding='utf-8') as f:
+                json.dump(r.json(), f, ensure_ascii=False, indent=4)  # 使用 indent=4 排版
+            
+            print(f"完整錯誤訊息：{r.text}")
+            print(f"錯誤代碼 {r.json()['error']['code']}")
+
+            inside_error = json.loads(r.json()['error']['message'])
+            print(f"錯誤訊息：{inside_error['error']['message']}")
+            print(f"錯誤細節：{inside_error['error']['details']}")
             return
 
         job_data = r.json()['data']
@@ -141,12 +162,12 @@ if __name__ == "__main__":
     # 可複合參數(多選)
     mul_filter_params = {
         'area': '6001016001,6001016002,6001016003,6001016004,6001016005,\
-            6001016007,6001016008,6001016011,6001016024,6001016027,6001018001,\
+            6001016007,6001016008,6001016011,6001016024,6001016027,\
                 6001014001,6001014002,6001014003,6001014004,6001014008,\
                     6001014014,6001001000',  # (地區) 
         's9': '1',  # (上班時段) 日班 1, 夜班 2, 大夜班 4, 假日班 8
-        'jobexp': '0,1,3',  # (經歷要求) 不拘 0, 1年以下 1, 1-3年 3, 3-5年 5, 5-10年 10, 10年以上 99
-        'edu': '1,2,3,4,5',  # (學歷要求) 高中職以下 1,高中職 2,專科 3,大學 4,碩士 5,博士 6
+        'jobexp': '1,3',  # (經歷) 不拘/1年以下 1, 1-3年 3, 3-5年 5, 5-10年 10, 10年以上 99
+        'edu': '3,4,5',  # (學歷) 高中職以下 1,高中職 2,專科 3,大學 4,碩士 5,博士 6
         'jobcat': '2007001004,2007001018,2007001022,2007001020,2007001012,\
             2002001011,2007001009,2007001010,2016001013',  # (職位類別)
         #'wt': '1,2,4,8,16',  # (工讀類型) 長期 1, 短期 2, 假日 4, 寒假 8, 暑假 16
@@ -170,9 +191,9 @@ if __name__ == "__main__":
         
         # 計算當前進度百分比
         progress = (idx / len(combinations)) * 100
-        print(f"處理進度：{progress:.2f}% ({idx}/{len(combinations)})", end='\r')
+        print(f"處理進度：{progress:3.2f} % ({idx}/{len(combinations)})", end='\r')
 
-        time.sleep(random.uniform(0.4, 2))
+        time.sleep(random.uniform(0.4, 1))
         
         alljobs_set.update(jobs)  # 用 set.update() 合併職缺 ID，去除重複
 
@@ -183,29 +204,11 @@ if __name__ == "__main__":
     """ 
     print('總職缺數：', len(alljobs_set))
 
-    """ 
-    # 進度符號
-    progress_symbols = ['|', '/', '-', '\\']  # 定義進度符號的順序
-    progress_index = 0  # 進度符號的初始索引
-    """
-
     # 逐一取得職缺詳細資料
     job_details = []
     for job_id in alljobs_set:
         job_info = job104_spider.get_job(job_id)
         job_details.append(job_info)
-
-        """
-        # 更新進度符號顯示（動態顯示 | / - \)
-        sys.stdout.write(f'\r職缺資料({len(job_details)})，緩衝中... {progress_symbols[progress_index]}') 
-        sys.stdout.flush()  # 強制刷新輸出到螢幕
-        # 更新進度符號索引
-        progress_index = (progress_index + 1) % len(progress_symbols)
-        """
-    
-    """
-    print()  # 讓進度列結束後換行
-    """
 
     # 將職缺資料存入 Excel
     df = pd.DataFrame(job_details)
