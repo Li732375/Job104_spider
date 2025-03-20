@@ -156,9 +156,6 @@ class Job104Spider():
             '法定福利': ', '.join(job_data['welfare']['legalTag']),
             #'其他福利': job_data['welfare']['welfare'],
         }
-        
-        # 隨機等待 3~5 秒
-        time.sleep(random.uniform(1, 3))
 
         return data_info
 
@@ -215,21 +212,30 @@ if __name__ == "__main__":
         # 若是常常逢錯誤 11100，可以考慮放緩頻率
         time.sleep(random.uniform(0.4, 1.8))
         
-        alljobs_set.update(jobs)  # 用 set.update() 合併職缺 ID，去除重複
+        alljobs_set.update(jobs)  # 用 set.update() 合併，去除重複職缺 ID
 
     """
     # 不使用篩選條件，如果只想取得最新職缺，註解掉上面的區域
     total_count, jobs = job104_spider.search(max_num)
     alljobs_set = set(jobs)
     """ 
-    print('總職缺數：', len(alljobs_set))
+    total_jobs = len(alljobs_set)  # 總職缺數
+    print('總職缺數：', total_jobs)
 
     # 逐一取得職缺詳細資料
     print('逐一取得職缺詳細資料中...')
     job_details = []
-    for job_id in alljobs_set:
+    for idx, job_id in enumerate(alljobs_set, start=1):
         job_info = job104_spider.get_job(job_id)
         job_details.append(job_info)
+        
+        # 隨機等待 3~5 秒
+        time.sleep(random.uniform(1, 2))
+        
+        # 計算進度百分比
+        progress = (idx / total_jobs) * 100
+        print(f"職缺資料抓取進度：{progress:>6.2f} % ({idx}/{total_jobs})", 
+              end='\r')
 
     # 將職缺資料存入 Excel
     df = pd.DataFrame(job_details)
