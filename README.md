@@ -6,25 +6,26 @@
 
 - Python 3.x
 - 安裝以下 Python 套件：
-  - `requests`
-  - `pandas`
+   - requests：用於發送 HTTP 請求並取得職缺資料
+   - pandas：用於處理資料並輸出 Excel 檔案
+   - openpyxl：支援 Excel 2007 (.xlsx) 格式的寫入
 
 您可以使用 pip 安裝所需的套件：
 
 ```
-pip install requests pandas
+pip install requests pandas openpyxl
 ```
 
 ## 使用方式
 
 1. **搜尋職缺**  
-   使用 `search()` 方法進行職缺搜尋，您可以設定最大職缺數量 `max_mun`，以及篩選條件 `filter_params`。如果您希望搜尋所有職缺，可以將 `max_mun` 設為 -1。
+   使用 `search()` 方法進行職缺搜尋，您可以自訂最大職缺數量 `max_mun` (設為 -1 表示上限)，以及兩類篩選條件欄位與內容。更多參數，見 [wiki](https://github.com/Li732375/Job104_spider/wiki)。
 
 2. **篩選職缺條件**  
    篩選條件包括學歷、工作經驗、薪資類型、工作型態等。程式中提供了範例的篩選參數。您可以根據需要進行修改。
 
 3. **獲取職缺詳細資料**  
-   使用 `get_job()` 方法來獲取單一職缺的詳細資訊，返回一個包含職缺詳細資訊的字典。
+   使用 `get_job()` 方法來獲取單一職缺的詳細資訊。
 
 4. **將資料輸出至 Excel**  
    當爬取完所有職缺的詳細資料後，程式會將這些資料保存為 `104jobs.xlsx` 的 Excel 檔案。
@@ -34,10 +35,10 @@ pip install requests pandas
 ### 主要類別：`Job104Spider`
 
 1. **search(max_mun=150, filter_params=None)**  
-   用於搜尋職缺，您可以指定搜尋條件，並設定搜尋的最大職缺數量 `max_mun`。若 `max_mun` 設為 -1，則會搜尋所有可用的職缺。更多 `filter_params` 參數，見 [wiki](https://github.com/Li732375/Job104_spider/wiki)。
+   用於搜尋條件下職缺清單。
 
 2. **get_job(job_id)**  
-   用於獲取某一職缺的詳細資料，返回一個包含職缺詳細資訊的字典。
+   獲取某一職缺的詳細資訊。
 
 ### 範例程式
 
@@ -45,14 +46,14 @@ pip install requests pandas
 if __name__ == "__main__":
     job104_spider = Job104Spider()
 
-    # 獨立參數(單選)
+    # 獨立參數 (單選)
     uni_filter_params = {
         's5': '0',  # 0:不需輪班 256:輪班
         'isnew': '0',  # (更新日期) 0:本日最新 3:三日內 7:一週內 14:兩週內 30:一個月內
         'wktm': '1',
     }
     
-    # 可複合參數(多選)，可能要避免使用 '\' 換行，雖然能執行，卻會影響輸出
+    # 可複合參數 (多選)，可能要避免使用 '\' 換行，雖然能執行，卻會影響輸出
     mul_filter_params = {
         'area': '6001016001,6001016002,6001016003,6001016004,6001016005,6001016007,6001016008,6001016011,6001016024,6001016027',  # (地區) 
         's9': '1',  # (上班時段) 日班 1, 夜班 2, 大夜班 4, 假日班 8
@@ -63,6 +64,7 @@ if __name__ == "__main__":
     }
 
     ... code ...
+
     print('搜尋條件組合總數：', len(combinations))
 
     # 無論檔案是否存在(不再就建立一個)，再清空紀錄檔案
@@ -79,18 +81,17 @@ if __name__ == "__main__":
                                        filter_params=filter_params)
         ... code ...
     ... code ...
+
     print('總職缺數：', len(alljobs_set))
 
     # 逐一取得職缺詳細資料
     print('逐一取得職缺詳細資料...')
+
     ... code ...
 
     # 將職缺資料存入 Excel
-    df = pd.DataFrame(job_details)
-    Output_Excel_FileName = '104jobs.xlsx'
-    df.to_excel(Output_Excel_FileName, index=False)
-    
-    print(f"職缺資料已寫入 {Output_Excel_FileName}")
+
+    ... code ...
 
 ```
 
@@ -114,7 +115,7 @@ if __name__ == "__main__":
 - 職缺描述
 - 104 職缺網址
 - 法定福利
-- 其他福利 (需要再自行增減欄位，資料內抓的到就行)
+- 其他福利 (需要再自行增減欄位，json 內抓的到就行)
 
 2. 輸出有資料的參數都記錄於 `valid_params_list.csv`，下次就可以直接用另一支程式 `job104_spider_list.py` 執行囉！
 
@@ -126,5 +127,5 @@ if __name__ == "__main__":
 
 ## 注意事項
 
-1. 由於程式會進行多次 HTTP 請求，建議使用者遵守 104 人力銀行的使用規範。
-2. 由於資料的篩選與搜尋範圍較大，建議設置合理的最大職缺數量。
+1. 由於資料的篩選與搜尋範圍較大，請適當調整 time.sleep(random.uniform(1, 2)) 的等待時間，避免過快請求導致 IP 被封鎖。
+2. 如果頻繁遇到錯誤碼 11100，可能是請求過於頻繁，請增加等待時間。
