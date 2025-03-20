@@ -83,10 +83,8 @@ class Job104Spider():
 
             page += 1
         
-        if len(jobs) < max_num:
-            return valid_urls, jobs
-        else:
-            return valid_urls, jobs[:max_num]
+        # 如果 max_num 超過 jobs 長度，會自動調整切片範圍，不會拋出 IndexError。
+        return valid_urls, jobs[:max_num]
 
     def get_job(self, job_id):
         """取得職缺網址詳細資料"""
@@ -118,7 +116,8 @@ class Job104Spider():
         job_data = r.json()['data']
         # 最後資料覆寫入指定檔案，協助除錯
         with open('final_job_url.json', 'w', encoding='utf-8') as f:
-            f.write('{' + f'"encoding": "{r.encoding}"' + ', ' + f'"URL": "https://www.104.com.tw/job/{job_id}"' + '},\n')
+            f.write('{' + f'"encoding": "{r.encoding}"' + ', ' + 
+                    f'"URL": "https://www.104.com.tw/job/{job_id}"' + '},\n')
             json.dump(job_data, f, ensure_ascii=False, indent=4)  # 使用 indent=4 美化 JSON
 
         salary_type = {
@@ -131,8 +130,12 @@ class Job104Spider():
         }
 
         # 職缺 (全職、兼職、長短期假日工讀..)
-        workType = '全職' if len(job_data['jobDetail']['workType']) == 0 else ', '.join([item for item in job_data['jobDetail']['workType']])
-        
+        workType = '全職' if len(job_data['jobDetail']['workType']) == 0 \
+            else ', '.join([item for item in job_data['jobDetail']['workType']])
+        jobArea = job_data['jobDetail']['addressRegion'] \
+            if len(job_data['jobDetail']['addressRegion']) == 3 \
+                else job_data['jobDetail']['addressRegion'][3:]
+
         data_info = {
             '更新日期': job_data['header']['appearDate'],
             '學歷': job_data['condition']['edu'],
@@ -142,6 +145,7 @@ class Job104Spider():
             '最高薪資': int(job_data['jobDetail']['salaryMax']),
             '最低薪資': int(job_data['jobDetail']['salaryMin']),
             '工作縣市': job_data['jobDetail']['addressArea'],
+            '工作里區': jobArea,
             '工作地址': job_data['jobDetail']['addressDetail'],
             '工作時段': job_data['jobDetail']['workPeriod'],
             '公司名稱': job_data['header']['custName'],
