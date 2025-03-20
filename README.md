@@ -45,69 +45,84 @@ pip install requests pandas
 if __name__ == "__main__":
     job104_spider = Job104Spider()
 
-    # 獨立篩選參數
+    # 獨立參數(單選)
     uni_filter_params = {
-        's5': '0',  # 不需輪班
-        'wktm': '1',  # 週休二日
-        'isnew': '0',  # 本日最新
+        's5': '0',  # 0:不需輪班 256:輪班
+        'isnew': '0',  # (更新日期) 0:本日最新 3:三日內 7:一週內 14:兩週內 30:一個月內
+        'wktm': '1',
     }
     
-    # 可複合篩選參數
+    # 可複合參數(多選)，可能要避免使用 '\' 換行，雖然能執行，卻會影響輸出
     mul_filter_params = {
-        'area': '6001016000',  # 地區
-        's9': '1',  # 上班時段
-        'jobexp': '1,3,5,10,99',  # 經歷要求
-        'zone': '16',  # 公司類型
-        'edu': '1,2,3,4,5',  # 學歷要求
+        'area': '6001016001,6001016002,6001016003,6001016004,6001016005,6001016007,6001016008,6001016011,6001016024,6001016027',  # (地區) 
+        's9': '1',  # (上班時段) 日班 1, 夜班 2, 大夜班 4, 假日班 8
+        'jobexp': '1,3',  # (經歷) 不拘/1年以下 1, 1-3年 3, 3-5年 5, 5-10年 10, 10年以上 99
+        'edu': '3,4,5',  # (學歷) 高中職以下 1,高中職 2,專科 3,大學 4,碩士 5,博士 6
+        'jobcat': '2007001004,2007001018,2007001022',  # (職位類別)
+        #'wt': '1,2,4,8,16',  # (工讀類型) 長期 1, 短期 2, 假日 4, 寒假 8, 暑假 16
     }
 
-    # 解析篩選條件的所有組合
-    keys = mul_filter_params.keys()
-    values = [v.split(',') for v in mul_filter_params.values()]
-    combinations = list(product(*values))  # 產生所有篩選條件的組合
+    ... code ...
+    print('搜尋條件組合總數：', len(combinations))
 
-    # 用 set 合併職缺 ID，避免重複
-    alljobs_set = set()
-    for combo in combinations:
+    # 無論檔案是否存在(不再就建立一個)，再清空紀錄檔案
+    open('valid_params_list.csv', 'w', encoding='utf-8').close()
+
+    # 每個條件組合要取得的職缺數
+    max_num = 100
+
+    ... code ...
+
+    for idx, combo in enumerate(combinations, start=1):  # 避免從 0 開始影響百分比計算
         filter_params = {**uni_filter_params, **dict(zip(keys, combo))}
-        total_count, jobs = job104_spider.search('python', max_mun=10, filter_params=filter_params)
-        alljobs_set.update(jobs)  # 合併職缺 ID
-    
-    print('搜尋結果職缺總數：', len(alljobs_set))
+        valid_url_list, jobs = job104_spider.search(max_num=max_num, 
+                                       filter_params=filter_params)
+        ... code ...
+    ... code ...
+    print('總職缺數：', len(alljobs_set))
 
-    # 逐一獲取職缺詳細資料
-    job_details = []
-    for job_id in alljobs_set:
-        job_info = job104_spider.get_job(job_id)
-        job_details.append(job_info)
+    # 逐一取得職缺詳細資料
+    print('逐一取得職缺詳細資料...')
+    ... code ...
 
-    # 儲存職缺資料至 Excel
+    # 將職缺資料存入 Excel
     df = pd.DataFrame(job_details)
-    df.to_excel('104jobs.xlsx', index=False)
+    Output_Excel_FileName = '104jobs.xlsx'
+    df.to_excel(Output_Excel_FileName, index=False)
+    
+    print(f"職缺資料已寫入 {Output_Excel_FileName}")
 
-    print("職缺資料已成功寫入 jobs.xlsx")
 ```
 
 ### 輸出結果
 
-爬取的職缺資料將儲存於 `104jobs.xlsx` 檔案，包含以下欄位：
+1. 爬取的職缺資料將儲存於 `104jobs.xlsx` 檔案，包含以下欄位：
 
 - 更新日期
-- 學歷要求
-- 工作經驗要求
+- 學歷
+- 工作經驗
+- 工作型態
 - 薪資類型
 - 最高薪資
 - 最低薪資
-- 工作型態
+- 工作縣市
+- 工作地址
+- 工作時段
+- 公司名稱
+- 公司產業類別
 - 職缺名稱
 - 職缺描述
-- 公司名稱
-- 工作縣市
-- 工作時段
+- 104 職缺網址
 - 法定福利
-- 其他福利
-- 104 網址
-- 公司網址
+- 其他福利 (需要再自行增減欄位，資料內抓的到就行)
+
+2. 輸出有資料的參數都記錄於 `valid_params_list.csv`，下次就可以直接用另一支程式 `job104_spider_list.py` 執行囉！
+
+3. 有問題的職缺清單連結都記錄於 `final_job_search_list`
+
+4. 有問題的職缺資訊連結都記錄於 `final_job_url.json`
+
+5. 有問題的爬取資訊記錄於 `error_message.json`
 
 ## 注意事項
 
