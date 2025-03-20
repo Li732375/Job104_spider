@@ -21,12 +21,14 @@ class Job104Spider():
         
         jobs = []
         total_count = 0
+        valid_urls = []
+        params = [f'&{key}={value}' for key, value in filter_params.items()]
         
         url = 'https://www.104.com.tw/jobs/search/api/jobs'
         query = f'jobsource=index_s&mode=s'
         
         if filter_params:
-            query += ''.join([f'&{key}={value}' for key, value in filter_params.items()])
+            query += ''.join(params)
         
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
@@ -59,18 +61,21 @@ class Job104Spider():
             datas = r.json()
             # 最後資料覆寫入指定檔案，協助除錯
             with open('final_job_search_list.json', 'w', encoding='utf-8') as f:
-                f.write('{' + f'"encoding": "{r.encoding}"' + '}\n')
+                f.write('{' + f'"encoding": "{r.encoding}"' + '},\n')
                 json.dump(datas, f, ensure_ascii=False, indent=4)
 
             total_count = datas['metadata']['pagination']['total']
             
             # 將每一頁的職缺網址代碼加入 jobs
             jobs.extend(
-                data['link']['job'].split('/job/')[-1] for data in datas['data'])
+                data['link']['job'].split('/job/')[-1] \
+                    for data in datas['data'])
             
             # 如果是最後一頁或空頁，就跳出迴圈
             if page == datas['metadata']['pagination']['lastPage'] or \
                 datas['metadata']['pagination']['lastPage'] == 0:
+                if total_count != 0:
+                    valid_urls.append(f'{query}')
                 break
             
             print(f'清單資料({len(jobs)}筆)，緩衝中...')
@@ -78,7 +83,10 @@ class Job104Spider():
 
             page += 1
         
-        return total_count, jobs[:max_num]
+        if len(jobs) < max_num:
+            return valid_urls, jobs
+        else:
+            return valid_urls, jobs[:max_num]
 
     def get_job(self, job_id):
         """取得職缺網址詳細資料"""
@@ -110,7 +118,7 @@ class Job104Spider():
         job_data = r.json()['data']
         # 最後資料覆寫入指定檔案，協助除錯
         with open('final_job_url.json', 'w', encoding='utf-8') as f:
-            f.write('{' + f'"encoding": "{r.encoding}"' + ', ' + f'"URL": "https://www.104.com.tw/job/{job_id}"' + '}\n')
+            f.write('{' + f'"encoding": "{r.encoding}"' + ', ' + f'"URL": "https://www.104.com.tw/job/{job_id}"' + '},\n')
             json.dump(job_data, f, ensure_ascii=False, indent=4)  # 使用 indent=4 美化 JSON
 
         salary_type = {
@@ -139,7 +147,7 @@ class Job104Spider():
             '公司名稱': job_data['header']['custName'],
             '公司產業類別': job_data['industry'],
             '職缺名稱': job_data['header']['jobName'],
-            '描述': job_data['jobDetail']['jobDescription'],
+            '職缺描述': job_data['jobDetail']['jobDescription'],
             '104 職缺網址': f'https://www.104.com.tw/job/{job_id}',
             '法定福利': ', '.join(job_data['welfare']['legalTag']),
             #'其他福利': job_data['welfare']['welfare'],
@@ -160,12 +168,9 @@ if __name__ == "__main__":
         'wktm': '1',
     }
     
-    # 可複合參數(多選)
+    # 可複合參數(多選)，可能要避免使用 '\' 換行，雖然能執行，卻會影響輸出內容
     mul_filter_params = {
-        'area': '6001016001,6001016002,6001016003,6001016004,6001016005,\
-            6001016007,6001016008,6001016011,6001016024,6001016027,\
-                6001014001,6001014002,6001014003,6001014004,6001014008,\
-                    6001014014,6001001000',  # (地區) 
+        'area': '6001016001,6001016002,6001016003,6001016004,6001016005,6001016007,6001016008,6001016011,6001016024,6001016027,6001014001,6001014002,6001014003,6001014004,6001014008,6001014014,6001001000',  # (地區) 
         's9': '1',  # (上班時段) 日班 1, 夜班 2, 大夜班 4, 假日班 8
         'jobexp': '1,3',  # (經歷) 不拘/1年以下 1, 1-3年 3, 3-5年 5, 5-10年 10, 10年以上 99
         'edu': '3,4,5',  # (學歷) 高中職以下 1,高中職 2,專科 3,大學 4,碩士 5,博士 6
@@ -178,35 +183,45 @@ if __name__ == "__main__":
     values = [v.split(',') for v in mul_filter_params.values()]
     combinations = list(product(*values))  # 產生所有可能組合
     print('搜尋條件組合總數：', len(combinations))
-    
-    # 每個條件組合取得的職缺數
+
+    # 無論檔案是否存在(不再就建立一個)，再清空紀錄檔案
+    open('valid_params_list.csv', 'w', encoding='utf-8').close()
+
+    # 每個條件組合要取得的職缺數
     max_num = 100
 
     # 使用篩選條件，轉換成 set 合併重複職缺
     alljobs_set = set()
+
     for idx, combo in enumerate(combinations, start=1):  # 避免從 0 開始影響百分比計算
         filter_params = {**uni_filter_params, **dict(zip(keys, combo))}
-        _, jobs = job104_spider.search(max_num=max_num, 
+        valid_url_list, jobs = job104_spider.search(max_num=max_num, 
                                        filter_params=filter_params)
+        
+        # 紀錄有效網址參數
+        with open('valid_params_list.csv', 'a', encoding='utf-8') as f:
+            for param in valid_url_list:
+                f.write(param + '\n')
         
         # 計算當前進度百分比
         progress = (idx / len(combinations)) * 100
-        print(f"更換篩選條件：{progress:>3.2f} % ({idx}/{len(combinations)})", end='\r')
+        print(f"更換條件探索中：{progress:>6.2f} % ({idx}/{len(combinations)})", 
+              end='\r')
 
-        # 若是常逢錯誤 11100，可以考慮放緩頻率
+        # 若是常常逢錯誤 11100，可以考慮放緩頻率
         time.sleep(random.uniform(0.4, 1.8))
         
         alljobs_set.update(jobs)  # 用 set.update() 合併職缺 ID，去除重複
 
     """
-    # 不使用篩選條件
+    # 不使用篩選條件，如果只想取得最新職缺，註解掉上面的區域
     total_count, jobs = job104_spider.search(max_num)
     alljobs_set = set(jobs)
     """ 
     print('總職缺數：', len(alljobs_set))
 
     # 逐一取得職缺詳細資料
-    print('逐一取得職缺詳細資料...')
+    print('逐一取得職缺詳細資料中...')
     job_details = []
     for job_id in alljobs_set:
         job_info = job104_spider.get_job(job_id)
