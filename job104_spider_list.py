@@ -138,36 +138,39 @@ class Job104Spider():
 
         return data_info
 
-    def read_queries(self, file_path):
-        """逐行讀取檔案並回傳可遍歷的網址"""
-        if os.path.exists(file_path):
-            with open(file_path, 'r', encoding='utf-8') as f:
-                for line in f:
-                    yield line.strip()  # 逐行產生網址
-        else:
-            print(f'檔案 {file_path} 不存在！')
-            yield from []  # 檔案不存在時回傳空迭代器
-
 if __name__ == "__main__":
     job104_spider = Job104Spider()
 
     # 每個條件組合要取得的職缺數
-    max_num = 100
+    max_num = -1
     alljobs_set = set()
 
-    for query in job104_spider.read_queries('valid_params_list.csv'):
-        jobs = job104_spider.search(max_num, query)
-        alljobs_set.update(jobs)
-    
-    print('總職缺數：', len(alljobs_set))
+    # 讀取查詢條件
+    with open('valid_params_list.csv', 'r', encoding='utf-8') as f:
+        for idx, query in enumerate(f, start=1):
+            query = query.strip()  # 去除換行符號
+            jobs = job104_spider.search(max_num, query)
+
+            # 只顯示當前處理的查詢編號
+            print(f"正在處理第 {idx} 行查詢，共 {len(jobs)} 筆...", end='\r')
+
+            alljobs_set.update(jobs)
+
+    total_jobs = len(alljobs_set)  # 總職缺數
+    print('總職缺數：', total_jobs)
 
     # 逐一取得職缺詳細資料
-    print('逐一取得職缺詳細資料...')
+    print('逐一取得職缺詳細資料中...')
 
     job_details = []
-    for job_id in alljobs_set:
+    for idx, job_id in enumerate(alljobs_set, start=1):
         job_info = job104_spider.get_job(job_id)
         job_details.append(job_info)
+        
+        # 計算進度百分比
+        progress = (idx / total_jobs) * 100
+        print(f"職缺資料抓取進度：{progress:>6.2f} % ({idx}/{total_jobs})", 
+              end='\r')
 
     # 將職缺資料存入 Excel
     df = pd.DataFrame(job_details)
