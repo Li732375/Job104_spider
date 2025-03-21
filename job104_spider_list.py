@@ -44,10 +44,8 @@ class Job104Spider():
                 
                 print(f"完整錯誤訊息：{r.text}")
                 print(f"錯誤代碼 {r.json()['error']['code']}")
-
-                inside_error = json.loads(r.json()['error']['message'])
-                print(f"錯誤訊息：{inside_error['error']['message']}")
-                print(f"錯誤細節：{inside_error['error']['details']}")
+                print(f"錯誤訊息：{r.json()['error']['message']}")
+                print(f"錯誤細節：{r.json()['error']['details']}")
                 break
             
             datas = r.json()
@@ -89,10 +87,8 @@ class Job104Spider():
             
             print(f"完整錯誤訊息：{r.text}")
             print(f"錯誤代碼 {r.json()['error']['code']}")
-
-            inside_error = json.loads(r.json()['error']['message'])
-            print(f"錯誤訊息：{inside_error['error']['message']}")
-            print(f"錯誤細節：{inside_error['error']['details']}")
+            print(f"錯誤訊息：{r.json()['error']['message']}")
+            print(f"錯誤細節：{r.json()['error']['details']}")
             return
 
         job_data = r.json()['data']
@@ -111,8 +107,17 @@ class Job104Spider():
         }
 
         # 職缺 (全職、兼職、長短期假日工讀..)
-        workType = '全職' if len(job_data['jobDetail']['workType']) == 0 else ', '.join([item for item in job_data['jobDetail']['workType']])
-        
+        workType = '全職' if len(job_data['jobDetail']['workType']) == 0 \
+            else ', '.join([item for item in job_data['jobDetail']['workType']])
+        jobArea = job_data['jobDetail']['addressRegion'] \
+            if len(job_data['jobDetail']['addressRegion']) == 3 \
+                else job_data['jobDetail']['addressRegion'][3:]
+        certificate = '無' if len(job_data['condition']['certificate']) == 0 \
+            else ', '.join(job_data['condition']['certificate']['name'])
+        driverLicense_list = job_data['condition']['driverLicense']
+        driverLicense = '無' if len(driverLicense_list) == 0 \
+            else ', '.join([item for item in driverLicense_list])
+
         data_info = {
             '更新日期': job_data['header']['appearDate'],
             '學歷': job_data['condition']['edu'],
@@ -122,19 +127,19 @@ class Job104Spider():
             '最高薪資': int(job_data['jobDetail']['salaryMax']),
             '最低薪資': int(job_data['jobDetail']['salaryMin']),
             '工作縣市': job_data['jobDetail']['addressArea'],
+            '工作里區': jobArea,
             '工作地址': job_data['jobDetail']['addressDetail'],
             '工作時段': job_data['jobDetail']['workPeriod'],
             '公司名稱': job_data['header']['custName'],
             '公司產業類別': job_data['industry'],
             '職缺名稱': job_data['header']['jobName'],
-            '描述': job_data['jobDetail']['jobDescription'],
+            '職缺描述': job_data['jobDetail']['jobDescription'],
             '104 職缺網址': f'https://www.104.com.tw/job/{job_id}',
+            '證照': certificate,
+            '駕駛執照': driverLicense,
             '法定福利': ', '.join(job_data['welfare']['legalTag']),
             #'其他福利': job_data['welfare']['welfare'],
         }
-        
-        # 隨機等待 3~5 秒
-        time.sleep(random.uniform(1, 3))
 
         return data_info
 
@@ -167,6 +172,9 @@ if __name__ == "__main__":
         job_info = job104_spider.get_job(job_id)
         job_details.append(job_info)
         
+        # 隨機等待幾秒
+        time.sleep(random.uniform(1, 2))
+                
         # 計算進度百分比
         progress = (idx / total_jobs) * 100
         print(f"職缺資料抓取進度：{progress:>6.2f} % ({idx}/{total_jobs})", 
