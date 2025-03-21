@@ -109,6 +109,8 @@ class Job104Spider():
             print(f"錯誤代碼 {r.json()['error']['code']}")
             print(f"錯誤訊息：{r.json()['error']['message']}")
             print(f"錯誤細節：{r.json()['error']['details']}")
+
+            time.sleep(random.uniform(3, 5))
             return
 
         job_data = r.json()['data']
