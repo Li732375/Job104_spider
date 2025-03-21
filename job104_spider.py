@@ -54,14 +54,14 @@ class Job104Spider():
                 print(f"錯誤代碼 {r.json()['error']['code']}")
                 print(f"錯誤訊息：{r.json()['error']['message']}")
                 print(f"錯誤細節：{r.json()['error']['details']}")
-
+                
                 time.sleep(random.uniform(3, 5))
                 break
             
             datas = r.json()
             # 最後資料覆寫入指定檔案，協助除錯
             with open('final_job_search_list.json', 'w', encoding='utf-8') as f:
-                f.write('{' + f'"encoding": "{r.encoding}"' + '},\n')
+                f.write('//' + f'"encoding": "{r.encoding}"' + '\n')
                 json.dump(datas, f, ensure_ascii=False, indent=4)
 
             total_count = datas['metadata']['pagination']['total']
@@ -109,16 +109,20 @@ class Job104Spider():
             print(f"錯誤代碼 {r.json()['error']['code']}")
             print(f"錯誤訊息：{r.json()['error']['message']}")
             print(f"錯誤細節：{r.json()['error']['details']}")
-
+                
             time.sleep(random.uniform(3, 5))
             return
 
         job_data = r.json()['data']
         # 最後資料覆寫入指定檔案，協助除錯
         with open('final_job_url.json', 'w', encoding='utf-8') as f:
-            f.write('{' + f'"encoding": "{r.encoding}"' + ', ' + 
-                    f'"URL": "https://www.104.com.tw/job/{job_id}"' + '},\n')
+            f.write('//' + f'"encoding": "{r.encoding}"' + ', ' + 
+                    f'"URL": "https://www.104.com.tw/job/{job_id}"\n')
             json.dump(job_data, f, ensure_ascii=False, indent=4)  # 使用 indent=4 美化 JSON
+
+        # 部分職缺因時間差異，已經被關閉
+        if job_data['switch'] == 'off':
+            return 
 
         salary_type = {
             10: '面議',
@@ -136,7 +140,7 @@ class Job104Spider():
             if len(job_data['jobDetail']['addressRegion']) == 3 \
                 else job_data['jobDetail']['addressRegion'][3:]
         certificate = '無' if len(job_data['condition']['certificate']) == 0 \
-            else ', '.join(job_data['condition']['certificate']['name'])
+            else ', '.join(info['name'] for info in job_data['condition']['certificate'])
         driverLicense_list = job_data['condition']['driverLicense']
         driverLicense = '無' if len(driverLicense_list) == 0 \
             else ', '.join([item for item in driverLicense_list])
@@ -172,8 +176,9 @@ if __name__ == "__main__":
     # 獨立參數(單選)
     uni_filter_params = {
         's5': '0',  # 0:不需輪班 256:輪班
-        'isnew': '0',  # (更新日期) 0:本日最新 3:三日內 7:一週內 14:兩週內 30:一個月內
+        'isnew': '3',  # (更新日期) 0:本日最新 3:三日內 7:一週內 14:兩週內 30:一個月內
         'wktm': '1',
+        'ro': '1',
     }
     
     # 可複合參數(多選)，可能要避免使用 '\' 換行，雖然能執行，卻會影響輸出內容
@@ -195,7 +200,7 @@ if __name__ == "__main__":
     open('valid_params_list.csv', 'w', encoding='utf-8').close()
 
     # 每個條件組合要取得的職缺數
-    max_num = 100
+    max_num = 20
 
     # 使用篩選條件，轉換成 set 合併重複職缺
     alljobs_set = set()
@@ -216,7 +221,7 @@ if __name__ == "__main__":
               end='\r')
 
         # 若是常常逢錯誤 11100，可以考慮放緩頻率
-        time.sleep(random.uniform(0.4, 1.8))
+        time.sleep(random.uniform(0.7, 1.8))
         
         alljobs_set.update(jobs)  # 用 set.update() 合併，去除重複職缺 ID
 

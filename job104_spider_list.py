@@ -98,8 +98,12 @@ class Job104Spider():
         job_data = r.json()['data']
         # 最後資料覆寫入指定檔案，協助除錯
         with open('final_job_url.json', 'w', encoding='utf-8') as f:
-            f.write('{' + f'"encoding": "{r.encoding}"' + ', ' + f'"URL": "https://www.104.com.tw/job/{job_id}"' + '}\n')
+            f.write('//' + f'"encoding": "{r.encoding}"' + ', ' + f'"URL": "https://www.104.com.tw/job/{job_id}"\n')
             json.dump(job_data, f, ensure_ascii=False, indent=4)  # 使用 indent=4 美化 JSON
+
+        # 部分職缺因時間差異，已經被關閉
+        if job_data['switch'] == 'off':
+            return 
 
         salary_type = {
             10: '面議',
@@ -117,7 +121,7 @@ class Job104Spider():
             if len(job_data['jobDetail']['addressRegion']) == 3 \
                 else job_data['jobDetail']['addressRegion'][3:]
         certificate = '無' if len(job_data['condition']['certificate']) == 0 \
-            else ', '.join(job_data['condition']['certificate']['name'])
+            else ', '.join(info['name'] for info in job_data['condition']['certificate'])
         driverLicense_list = job_data['condition']['driverLicense']
         driverLicense = '無' if len(driverLicense_list) == 0 \
             else ', '.join([item for item in driverLicense_list])
