@@ -52,10 +52,10 @@ class Job104Spider():
                 
                 print(f"完整錯誤訊息：{r.text}")
                 print(f"錯誤代碼 {r.json()['error']['code']}")
+                print(f"錯誤訊息：{r.json()['error']['message']}")
+                print(f"錯誤細節：{r.json()['error']['details']}")
 
-                inside_error = json.loads(r.json()['error']['message'])
-                print(f"錯誤訊息：{inside_error['error']['message']}")
-                print(f"錯誤細節：{inside_error['error']['details']}")
+                time.sleep(random.uniform(3, 5))
                 break
             
             datas = r.json()
@@ -107,10 +107,8 @@ class Job104Spider():
             
             print(f"完整錯誤訊息：{r.text}")
             print(f"錯誤代碼 {r.json()['error']['code']}")
-
-            inside_error = json.loads(r.json()['error']['message'])
-            print(f"錯誤訊息：{inside_error['error']['message']}")
-            print(f"錯誤細節：{inside_error['error']['details']}")
+            print(f"錯誤訊息：{r.json()['error']['message']}")
+            print(f"錯誤細節：{r.json()['error']['details']}")
             return
 
         job_data = r.json()['data']
@@ -135,6 +133,11 @@ class Job104Spider():
         jobArea = job_data['jobDetail']['addressRegion'] \
             if len(job_data['jobDetail']['addressRegion']) == 3 \
                 else job_data['jobDetail']['addressRegion'][3:]
+        certificate = '無' if len(job_data['condition']['certificate']) == 0 \
+            else ', '.join(job_data['condition']['certificate']['name'])
+        driverLicense_list = job_data['condition']['driverLicense']
+        driverLicense = '無' if len(driverLicense_list) == 0 \
+            else ', '.join([item for item in driverLicense_list])
 
         data_info = {
             '更新日期': job_data['header']['appearDate'],
@@ -153,6 +156,8 @@ class Job104Spider():
             '職缺名稱': job_data['header']['jobName'],
             '職缺描述': job_data['jobDetail']['jobDescription'],
             '104 職缺網址': f'https://www.104.com.tw/job/{job_id}',
+            '證照': certificate,
+            '駕駛執照': driverLicense,
             '法定福利': ', '.join(job_data['welfare']['legalTag']),
             #'其他福利': job_data['welfare']['welfare'],
         }
@@ -172,11 +177,10 @@ if __name__ == "__main__":
     # 可複合參數(多選)，可能要避免使用 '\' 換行，雖然能執行，卻會影響輸出內容
     mul_filter_params = {
         'area': '6001016001,6001016002,6001016003,6001016004,6001016005,6001016007,6001016008,6001016011,6001016024,6001016027,6001014001,6001014002,6001014003,6001014004,6001014008,6001014014,6001001000',  # (地區) 
-        's9': '1',  # (上班時段) 日班 1, 夜班 2, 大夜班 4, 假日班 8
-        'jobexp': '1,3',  # (經歷) 不拘/1年以下 1, 1-3年 3, 3-5年 5, 5-10年 10, 10年以上 99
-        'edu': '3,4,5',  # (學歷) 高中職以下 1,高中職 2,專科 3,大學 4,碩士 5,博士 6
-        'jobcat': '2007001004,2007001018,2007001022,2007001020,2007001012,2002001011,2007001009,2007001010,2016001013',  # (職位類別)
-        #'wt': '1,2,4,8,16',  # (工讀類型) 長期 1, 短期 2, 假日 4, 寒假 8, 暑假 16
+        'jobexp': '1,3',  # (經歷) 1: 不拘 / 1年以下, 3: 1-3年, 5: 3-5年, 10: 5-10年, 99: 10年以上
+        'edu': '3,4,5',  # (學歷) 1: 高中職以下, 2: 高中職, 3: 專科, 4: 大學, 5: 碩士, 6: 博士
+        'jobcat': '2007001004,2007001018,2007001022,2007001020,2007001012,2007001009,2007001010,2016001013',  # (職位類別)
+        # 'wt': '1,2,4,8,16',  # (工讀類型) 1: 長期, 2: 短期, 4: 假日, 8: 寒假, 16: 暑假
     }
 
     # 解析可複合篩選條件的所有可能組合
@@ -229,7 +233,7 @@ if __name__ == "__main__":
         job_info = job104_spider.get_job(job_id)
         job_details.append(job_info)
         
-        # 隨機等待 3~5 秒
+        # 隨機等待幾秒
         time.sleep(random.uniform(1, 2))
         
         # 計算進度百分比
