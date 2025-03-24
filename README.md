@@ -1,19 +1,17 @@
 # Job104Spider - 104 人力銀行職缺爬蟲
 
-這是一個用 Python 寫的爬蟲程式，主要用於爬取 104 人力銀行的職缺資料，並將結果儲存為 Excel 檔案。該程式支援依照特定篩選條件搜尋職缺，並能夠將職缺的詳細資訊（如薪資、公司名稱、工作地點等）導出至 Excel 檔案。
+這是一個用 Python 寫的爬蟲程式，主要用於爬取 104 人力銀行的職缺資料，依照特定篩選條件搜尋職缺，並能夠將職缺的詳細資訊（如薪資、公司名稱、工作地點等）導出至 csv 檔案。
 
 ## 需求
 
 - Python 3.x
 - 安裝以下 Python 套件：
    - requests：用於發送 HTTP 請求並取得職缺資料
-   - pandas：用於處理資料並輸出 Excel 檔案
-   - openpyxl：支援 Excel 2007 (.xlsx) 格式的寫入
 
 您可以使用 pip 安裝所需的套件：
 
 ```
-pip install requests pandas openpyxl
+pip install requests
 ```
 
 ## 使用方式
@@ -28,7 +26,7 @@ pip install requests pandas openpyxl
    使用 `get_job()` 方法來獲取單一職缺的詳細資訊。
 
 4. **將資料輸出至 Excel**  
-   當爬取完所有職缺的詳細資料後，程式會將這些資料保存為 `104jobs.xlsx` 的 Excel 檔案。
+   當爬取完所有職缺的詳細資料後，程式會將這些資料保存為 `104jobs.csv` 的 csv 檔案。
 
 ## 程式介紹
 
@@ -79,7 +77,6 @@ if __name__ == "__main__":
         filter_params = {**uni_filter_params, **dict(zip(keys, combo))}
         valid_url_list, jobs = job104_spider.search(max_num=max_num, 
                                        filter_params=filter_params)
-        ... code ...
     ... code ...
 
     print('總職缺數：', len(alljobs_set))
@@ -89,15 +86,11 @@ if __name__ == "__main__":
 
     ... code ...
 
-    # 將職缺資料存入 Excel
-
-    ... code ...
-
 ```
 
 ### 輸出結果
 
-1. 爬取的職缺資料將儲存於 `104jobs.xlsx` 檔案，包含以下欄位：
+1. 爬取的職缺資料將儲存於 `104jobs.csv` 檔案，包含以下欄位：
 
 - 更新日期
 - 學歷
