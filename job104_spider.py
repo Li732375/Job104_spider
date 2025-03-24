@@ -4,7 +4,7 @@ import time
 import random
 import requests
 from itertools import product
-import pandas as pd
+import csv
 import json
 
 # 設定標準輸出編碼為 utf-8
@@ -233,13 +233,24 @@ if __name__ == "__main__":
     total_jobs = len(alljobs_set)  # 總職缺數
     print('總職缺數：', total_jobs)
 
-    # 逐一取得職缺詳細資料
+    # 逐一寫入取得的職缺詳細資料
     print('逐一取得職缺詳細資料中...')
-    job_details = []
+
+    Output_csv_FileName = '104jobs.csv'
+
     for idx, job_id in enumerate(alljobs_set, start=1):
         job_info = job104_spider.get_job(job_id)
-        job_details.append(job_info)
-        
+
+        if idx == 1:
+            with open(Output_csv_FileName, mode='w', encoding='utf-8', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(job_info.keys())
+                writer.writerow(job_info.values())
+        else:
+            with open(Output_csv_FileName, mode='a', encoding='utf-8', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(job_info.values())
+
         # 隨機等待幾秒
         time.sleep(random.uniform(1, 2))
         
@@ -247,10 +258,5 @@ if __name__ == "__main__":
         progress = (idx / total_jobs) * 100
         print(f"職缺資料抓取進度：{progress:>6.2f} % ({idx}/{total_jobs})", 
               end='\r')
-
-    # 將職缺資料存入 Excel
-    df = pd.DataFrame(job_details)
-    Output_Excel_FileName = '104jobs.xlsx'
-    df.to_excel(Output_Excel_FileName, index=False)
     
-    print(f"職缺資料已寫入 {Output_Excel_FileName}")
+    print(f"職缺資料已寫入 {Output_csv_FileName}")
