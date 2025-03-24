@@ -241,15 +241,16 @@ if __name__ == "__main__":
     for idx, job_id in enumerate(alljobs_set, start=1):
         job_info = job104_spider.get_job(job_id)
 
-        if idx == 1:
-            with open(Output_csv_FileName, mode='w', encoding='utf-8', newline='') as f:
-                writer = csv.writer(f)
-                writer.writerow(job_info.keys())
-                writer.writerow(job_info.values())
-        else:
-            with open(Output_csv_FileName, mode='a', encoding='utf-8', newline='') as f:
-                writer = csv.writer(f)
-                writer.writerow(job_info.values())
+        if job_info is not None:
+            if idx == 1:
+                with open(Output_csv_FileName, mode='w', encoding='utf-8', newline='') as f:
+                    writer = csv.writer(f)
+                    writer.writerow(job_info.keys())
+                    writer.writerow(job_info.values())
+            else:
+                with open(Output_csv_FileName, mode='a', encoding='utf-8', newline='') as f:
+                    writer = csv.writer(f)
+                    writer.writerow(job_info.values())
 
         # 隨機等待幾秒
         time.sleep(random.uniform(1, 2))
