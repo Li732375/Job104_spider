@@ -47,7 +47,7 @@ class Job104Spider():
                 print(f'encoding: {r.encoding}')
                 
                 # 錯誤訊息覆寫入指定檔案，協助除錯
-                with open('error_message.json', 'w', encoding='utf-8') as f:
+                with open('error_message.json', 'w', encoding='utf-8-sig') as f:
                     json.dump(r.json(), f, ensure_ascii=False, indent=4)  # 使用 indent=4 排版
                 
                 print(f"完整錯誤訊息：{r.text}")
@@ -60,7 +60,7 @@ class Job104Spider():
             
             datas = r.json()
             # 最後資料覆寫入指定檔案，協助除錯
-            with open('final_job_search_list.json', 'w', encoding='utf-8') as f:
+            with open('final_job_search_list.json', 'w', encoding='utf-8-sig') as f:
                 f.write('//' + f'"encoding": "{r.encoding}"' + '\n')
                 json.dump(datas, f, ensure_ascii=False, indent=4)
 
@@ -102,7 +102,7 @@ class Job104Spider():
             print(f'encoding: {r.encoding}')
             
             # 錯誤訊息覆寫入指定檔案，協助除錯
-            with open('error_message.json', 'w', encoding='utf-8') as f:
+            with open('error_message.json', 'w', encoding='utf-8-sig') as f:
                 json.dump(r.json(), f, ensure_ascii=False, indent=4)  # 使用 indent=4 排版
             
             print(f"完整錯誤訊息：{r.text}")
@@ -115,7 +115,7 @@ class Job104Spider():
 
         job_data = r.json()['data']
         # 最後資料覆寫入指定檔案，協助除錯
-        with open('final_job_url.json', 'w', encoding='utf-8') as f:
+        with open('final_job_url.json', 'w', encoding='utf-8-sig') as f:
             f.write('//' + f'"encoding": "{r.encoding}"' + ', ' + 
                     f'"URL": "https://www.104.com.tw/job/{job_id}"\n')
             json.dump(job_data, f, ensure_ascii=False, indent=4)  # 使用 indent=4 美化 JSON
@@ -243,12 +243,12 @@ if __name__ == "__main__":
 
         if job_info is not None:
             if idx == 1:
-                with open(Output_csv_FileName, mode='w', encoding='utf-8', newline='') as f:
+                with open(Output_csv_FileName, mode='w', encoding='utf-8-sig', newline='') as f:
                     writer = csv.writer(f)
                     writer.writerow(job_info.keys())
                     writer.writerow(job_info.values())
             else:
-                with open(Output_csv_FileName, mode='a', encoding='utf-8', newline='') as f:
+                with open(Output_csv_FileName, mode='a', encoding='utf-8-sig', newline='') as f:
                     writer = csv.writer(f)
                     writer.writerow(job_info.values())
 
