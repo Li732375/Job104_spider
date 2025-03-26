@@ -37,6 +37,7 @@ class Job104Spider():
         
         page = 1
         pagesize = 20
+        rework_time = 0
         while max_num == -1 or len(jobs) < max_num:
             params = f'{query}&page={page}&pagesize={pagesize}'
             r = requests.get(url, params=params, headers=headers)
@@ -55,9 +56,16 @@ class Job104Spider():
                 print(f"錯誤訊息：{r.json()['error']['message']}")
                 print(f"錯誤細節：{r.json()['error']['details']}")
                 
-                time.sleep(random.uniform(3, 5))
-                break
+                error_code = r.json()['error']['code']
+                if rework_time <= 3 and error_code == (11100 or 11025):
+                    time.sleep(random.uniform(3, 5))
+                    rework_time += 1
+                    continue
+                else:
+                    rework_time = 0
+                    break
             
+            rework_time = 0
             datas = r.json()
             # 最後資料覆寫入指定檔案，協助除錯
             with open('final_job_search_list.json', 'w', encoding='utf-8-sig') as f:
