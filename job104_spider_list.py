@@ -6,9 +6,9 @@ import requests
 import csv
 import json
 
-# 設定標準輸出編碼為 utf-8
+# 設定標準輸出編碼為 utf-8-sig，避免 cmd、PowerShell、記事本顯示亂碼
 import sys
-sys.stdout.reconfigure(encoding='utf-8')
+sys.stdout.reconfigure(encoding='utf-8-sig')
 
 
 class Job104Spider():
@@ -61,7 +61,7 @@ class Job104Spider():
                 break
             
             print(f'清單資料({len(jobs)}筆)，緩衝中...')
-            time.sleep(random.uniform(3, 5))
+            time.sleep(random.uniform(1.5, 2.5))
 
             page += 1
         
@@ -166,6 +166,9 @@ if __name__ == "__main__":
             # 只顯示當前處理的查詢編號
             print(f"正在處理第 {idx} 行查詢，共 {len(jobs)} 筆...", end='\r')
 
+            # 若是常常逢錯誤 11100，可以考慮放緩頻率
+            time.sleep(random.uniform(0.5, 1.5))
+
             alljobs_set.update(jobs)
 
     total_jobs = len(alljobs_set)  # 總職缺數
@@ -174,7 +177,8 @@ if __name__ == "__main__":
     # 逐一取得職缺詳細資料
     print('逐一取得職缺詳細資料中...')
 
-    Output_csv_FileName = '104jobs.csv'
+    today = time.strftime("%Y-%m-%d")
+    Output_csv_FileName = f'104jobs_{today}.csv'
 
     for idx, job_id in enumerate(alljobs_set, start=1):
         job_info = job104_spider.get_job(job_id)
@@ -191,7 +195,7 @@ if __name__ == "__main__":
                     writer.writerow(job_info.values())
 
         # 隨機等待幾秒
-        time.sleep(random.uniform(1, 2))
+        time.sleep(random.uniform(0.5, 1.5))
         
         # 計算進度百分比
         progress = (idx / total_jobs) * 100
