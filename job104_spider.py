@@ -57,7 +57,7 @@ class Job104Spider():
                 print(f"錯誤細節：{r.json()['error']['details']}")
                 
                 error_code = r.json()['error']['code']
-                if rework_time <= 3 and error_code == (11100 or 11025):
+                if rework_time <= 3 and error_code in (11100, 11025):
                     time.sleep(random.uniform(3, 5))
                     rework_time += 1
                     continue
@@ -118,8 +118,7 @@ class Job104Spider():
             print(f"錯誤訊息：{r.json()['error']['message']}")
             print(f"錯誤細節：{r.json()['error']['details']}")
                 
-            time.sleep(random.uniform(3, 5))
-            return
+            return None, r.json()['error']['code']
 
         job_data = r.json()['data']
         # 最後資料覆寫入指定檔案，協助除錯
@@ -130,7 +129,7 @@ class Job104Spider():
 
         # 部分職缺因時間差異，已經被關閉
         if job_data['switch'] == 'off':
-            return 
+            return None, 0
 
         salary_type = {
             10: '面議',
@@ -176,7 +175,7 @@ class Job104Spider():
             #'其他福利': job_data['welfare']['welfare'],
         }
 
-        return data_info
+        return data_info, 0
 
 if __name__ == "__main__":
     job104_spider = Job104Spider()
@@ -248,7 +247,13 @@ if __name__ == "__main__":
     Output_csv_FileName = f'104jobs_{today}.csv'
 
     for idx, job_id in enumerate(alljobs_set, start=1):
-        job_info = job104_spider.get_job(job_id)
+        job_info, error_code = job104_spider.get_job(job_id)
+
+        error_time = 0
+        while error_time <= 3 and error_code in (11100, 11025):
+            time.sleep(random.uniform(3, 5))
+            job_info, error_code = job104_spider.get_job(job_id)
+            error_time += 1
 
         if job_info is not None:
             if idx == 1:
