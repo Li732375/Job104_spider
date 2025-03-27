@@ -131,6 +131,8 @@ class Job104Spider():
         driverLicense_list = job_data['condition']['driverLicense']
         driverLicense = '無' if len(driverLicense_list) == 0 \
             else ', '.join([item for item in driverLicense_list])
+        businessTrip = '無' if job_data['jobDetail']['businessTrip'] == 0 \
+            else job_data['jobDetail']['businessTrip']
 
         data_info = {
             '更新日期': job_data['header']['appearDate'],
@@ -149,6 +151,7 @@ class Job104Spider():
             '職缺描述': job_data['jobDetail']['jobDescription'],
             '證照': certificate,
             '駕駛執照': driverLicense,
+            '出差': businessTrip,
             '104 職缺網址': f'https://www.104.com.tw/job/{job_id}',
             '公司產業類別': job_data['industry'],
             '法定福利': ', '.join(job_data['welfare']['legalTag']),
