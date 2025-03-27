@@ -147,12 +147,15 @@ class Job104Spider():
             if len(job_data['jobDetail']['addressRegion']) == 3 \
                 else job_data['jobDetail']['addressRegion'][3:]
         certificate = '無' if len(job_data['condition']['certificate']) == 0 \
-            else ', '.join(info['name'] for info in job_data['condition']['certificate'])
+            else ', '.join(item['name'] for item in job_data['condition']['certificate'])
         driverLicense_list = job_data['condition']['driverLicense']
         driverLicense = '無' if len(driverLicense_list) == 0 \
             else ', '.join([item for item in driverLicense_list])
         businessTrip = '無' if job_data['jobDetail']['businessTrip'] == 0 \
             else job_data['jobDetail']['businessTrip']
+        specialty =  '無' if len(job_data['condition']['specialty']) == 0 \
+            else ', '.join(item['description'] for item in \
+                           job_data['condition']['specialty'])
 
         data_info = {
             '更新日期': job_data['header']['appearDate'],
@@ -169,6 +172,7 @@ class Job104Spider():
             '工作地址': job_data['jobDetail']['addressDetail'],
             '公司名稱': job_data['header']['custName'],
             '職缺描述': job_data['jobDetail']['jobDescription'],
+            '擅長要求': specialty,
             '證照': certificate,
             '駕駛執照': driverLicense,
             '出差': businessTrip,
