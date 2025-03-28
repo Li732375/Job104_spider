@@ -137,6 +137,7 @@ class Job104Spider():
             40: '日薪',
             50: '有薪',
             60: '年薪',
+            70: '其他',
         }
 
         # 職缺 (全職、兼職、長短期假日工讀..)
@@ -155,6 +156,8 @@ class Job104Spider():
         specialty =  '無' if len(job_data['condition']['specialty']) == 0 \
             else ', '.join(item['description'] for item in \
                            job_data['condition']['specialty'])
+        isActivelyHiring = '是' if job_data['header']['isActivelyHiring'] == \
+            True else '否'
 
         data_info = {
             '更新日期': job_data['header']['appearDate'],
@@ -176,6 +179,7 @@ class Job104Spider():
             '證照': certificate,
             '駕駛執照': driverLicense,
             '出差': businessTrip,
+            '積極徵才': isActivelyHiring,
             '104 職缺網址': f'https://www.104.com.tw/job/{job_id}',
             '公司產業類別': job_data['industry'],
             '法定福利': ', '.join(job_data['welfare']['legalTag']),
