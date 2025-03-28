@@ -68,7 +68,6 @@ class Job104Spider():
                 datas['metadata']['pagination']['lastPage'] == 0:
                 break
             
-            print(f'清單資料({len(jobs)}筆)，緩衝中...')
             time.sleep(random.uniform(1.5, 2.5))
 
             page += 1
@@ -152,6 +151,7 @@ class Job104Spider():
             '工作地址': job_data['jobDetail']['addressDetail'],
             '公司名稱': job_data['header']['custName'],
             '職缺描述': job_data['jobDetail']['jobDescription'],
+            '其他描述': job_data['condition']['other'],
             '擅長要求': specialty,
             '證照': certificate,
             '駕駛執照': driverLicense,
@@ -178,7 +178,7 @@ if __name__ == "__main__":
             jobs = job104_spider.search(max_num, query)
 
             # 只顯示當前處理的查詢編號
-            print(f"正在處理第 {idx} 行查詢，共 {len(jobs)} 筆...", end='\r')
+            print(f"正在處理第 {idx} 行查詢，已載入 {len(jobs)} 筆新職缺...", end='\r')
 
             # 若是常常逢錯誤 11100，可以考慮放緩頻率
             time.sleep(random.uniform(0.5, 1.5))

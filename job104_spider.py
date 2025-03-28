@@ -86,7 +86,6 @@ class Job104Spider():
                     valid_urls.append(f'{query}')
                 break
             
-            print(f'清單資料({len(jobs)}筆)，緩衝中...')
             time.sleep(random.uniform(1.5, 2.5))
 
             page += 1
@@ -172,6 +171,7 @@ class Job104Spider():
             '工作地址': job_data['jobDetail']['addressDetail'],
             '公司名稱': job_data['header']['custName'],
             '職缺描述': job_data['jobDetail']['jobDescription'],
+            '其他描述': job_data['condition']['other'],
             '擅長要求': specialty,
             '證照': certificate,
             '駕駛執照': driverLicense,
