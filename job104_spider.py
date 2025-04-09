@@ -146,18 +146,27 @@ class Job104Spider():
         jobArea = job_data['jobDetail']['addressRegion'] \
             if len(job_data['jobDetail']['addressRegion']) == 3 \
                 else job_data['jobDetail']['addressRegion'][3:]
-        certificate = '無' if len(job_data['condition']['certificate']) == 0 \
-            else ', '.join(item['name'] for item in job_data['condition']['certificate'])
+        jobAddress = '無' if len(job_data['jobDetail']['addressDetail']) == 0 \
+            else job_data['jobDetail']['addressDetail']
+        jobDes =  '無' if len(job_data['jobDetail']['jobDescription']) == 0 \
+            else job_data['jobDetail']['jobDescription']
+        jobDesOther =  '無' if len(job_data['condition']['other']) == 0 \
+            else job_data['condition']['other']
+        cert = job_data['condition']['certificate']
+        certificate = '無' if len(cert) == 0 \
+            else ', '.join(item['name'] for item in cert)
         driverLicense_list = job_data['condition']['driverLicense']
         driverLicense = '無' if len(driverLicense_list) == 0 \
             else ', '.join([item for item in driverLicense_list])
-        businessTrip = '無' if job_data['jobDetail']['businessTrip'] == 0 \
+        businessTrip = '無' if len(job_data['jobDetail']['businessTrip']) == 0 \
             else job_data['jobDetail']['businessTrip']
         specialty =  '無' if len(job_data['condition']['specialty']) == 0 \
             else ', '.join(item['description'] for item in \
                            job_data['condition']['specialty'])
         isActivelyHiring = '是' if job_data['header']['isActivelyHiring'] == \
             True else '否'
+        legalTag = '無' if len(job_data['welfare']['legalTag']) == 0 \
+            else ', '.join(job_data['welfare']['legalTag'])
 
         data_info = {
             '更新日期': job_data['header']['appearDate'],
@@ -171,10 +180,10 @@ class Job104Spider():
             '工作經驗': job_data['condition']['workExp'],
             '工作縣市': job_data['jobDetail']['addressArea'],
             '工作里區': jobArea,
-            '工作地址': job_data['jobDetail']['addressDetail'],
+            '工作地址': jobAddress,
             '公司名稱': job_data['header']['custName'],
-            '職缺描述': job_data['jobDetail']['jobDescription'],
-            '其他描述': job_data['condition']['other'],
+            '職缺描述': jobDes,
+            '其他描述': jobDesOther,
             '擅長要求': specialty,
             '證照': certificate,
             '駕駛執照': driverLicense,
@@ -182,7 +191,7 @@ class Job104Spider():
             '積極徵才': isActivelyHiring,
             '104 職缺網址': f'https://www.104.com.tw/job/{job_id}',
             '公司產業類別': job_data['industry'],
-            '法定福利': ', '.join(job_data['welfare']['legalTag']),
+            '法定福利': legalTag,
             #'其他福利': job_data['welfare']['welfare'],
         }
 
@@ -268,12 +277,14 @@ if __name__ == "__main__":
 
         if job_info is not None:
             if idx == 1:
-                with open(Output_csv_FileName, mode='w', encoding='utf-8-sig', newline='') as f:
+                with open(Output_csv_FileName, mode='w', encoding='utf-8-sig', 
+                          newline='') as f:
                     writer = csv.writer(f)
                     writer.writerow(job_info.keys())
                     writer.writerow(job_info.values())
             else:
-                with open(Output_csv_FileName, mode='a', encoding='utf-8-sig', newline='') as f:
+                with open(Output_csv_FileName, mode='a', encoding='utf-8-sig', 
+                          newline='') as f:
                     writer = csv.writer(f)
                     writer.writerow(job_info.values())
 
