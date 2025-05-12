@@ -169,7 +169,7 @@ class Job104Spider():
             '駕駛執照': driverLicense,
             '出差': businessTrip,
             '積極徵才': isActivelyHiring,
-            '104 職缺網址': f'https://www.104.com.tw/job/{job_id}',
+            '104 職缺網址': f'https://www.104.com.tw/job/{job_id}?apply=form',
             '公司產業類別': job_data['industry'],
             '法定福利': legalTag,
             #'其他福利': job_data['welfare']['welfare'],
@@ -195,7 +195,7 @@ if __name__ == "__main__":
                   end='\r')
 
             # 若是常常逢錯誤 11100，可以考慮放緩頻率
-            time.sleep(random.uniform(0.5, 1.5))
+            time.sleep(random.uniform(0.2, 0.5))
 
             alljobs_set.update(jobs)
 
@@ -231,7 +231,7 @@ if __name__ == "__main__":
                     writer.writerow(job_info.values())
 
         # 隨機等待幾秒
-        time.sleep(random.uniform(0.5, 1.5))
+        time.sleep(random.uniform(0.1, 0.4))
         
         # 計算進度百分比
         progress = (idx / total_jobs) * 100

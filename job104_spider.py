@@ -189,7 +189,7 @@ class Job104Spider():
             '駕駛執照': driverLicense,
             '出差': businessTrip,
             '積極徵才': isActivelyHiring,
-            '104 職缺網址': f'https://www.104.com.tw/job/{job_id}',
+            '104 職缺網址': f'https://www.104.com.tw/job/{job_id}?apply=form',
             '公司產業類別': job_data['industry'],
             '法定福利': legalTag,
             #'其他福利': job_data['welfare']['welfare'],
