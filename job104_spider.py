@@ -163,8 +163,6 @@ class Job104Spider():
         specialty =  '無' if len(job_data['condition']['specialty']) == 0 \
             else ', '.join(item['description'] for item in \
                            job_data['condition']['specialty'])
-        isActivelyHiring = '是' if job_data['header']['isActivelyHiring'] == \
-            True else '否'
         legalTag = '無' if len(job_data['welfare']['legalTag']) == 0 \
             else ', '.join(job_data['welfare']['legalTag'])
 
@@ -188,7 +186,6 @@ class Job104Spider():
             '證照': certificate,
             '駕駛執照': driverLicense,
             '出差': businessTrip,
-            '積極徵才': isActivelyHiring,
             '104 職缺網址': f'https://www.104.com.tw/job/{job_id}?apply=form',
             '公司產業類別': job_data['industry'],
             '法定福利': legalTag,
