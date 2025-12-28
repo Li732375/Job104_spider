@@ -39,7 +39,7 @@ python -m playwright install
    篩選條件包括學歷、工作經驗、薪資類型、工作型態等。程式中提供範例參數，可根據需要修改。更多參數詳見 [wiki](https://github.com/Li732375/Job104_spider/wiki)。
 
 2. **資料輸出至 CSV**
-   爬取完所有職缺詳細資料後，程式會將資料保存為 `104jobs_日期.csv`。
+   爬取完所有職缺詳細資料後，將資料存至 `104jobs_日期.csv`。
 
    * 若同一天多次執行，檔案會被覆蓋，因為檔名只到日期。
 
@@ -47,7 +47,51 @@ python -m playwright install
 
 ## 程式介紹
 
-### 主要類別：`Job104Spider`
+### 流程
+#### Step 1：先「網羅全部 job id」（只存在記憶體）
+
+```python
+alljobs_set = set()
+
+for each filter combination:
+    jobs = search(...)
+    alljobs_set.update(jobs)
+```
+
+這一階段：
+
+* ✅ 只是把 job id 收集在 `alljobs_set`，還沒寫檔
+
+---
+
+#### Step 2：開始抓詳情 → **每筆立即寫入**
+
+```python
+with open(csv) as f:
+    for job_id in alljobs_set:
+        info, _ = get_job(job_id)
+        if info:
+            writer.writerow(info)
+            f.flush()
+```
+
+這一階段：
+
+```
+抓一筆 → 寫一筆 → flush → 下一筆
+```
+
+所以如果你中途停掉程式：
+
+* CSV 裡的資料 **都是真實已完成的**
+* 不會發生「因中斷導致整批沒寫」的情況
+
+---
+
+結論：
+> **先蒐集完全部 job id → 然後逐筆抓詳情 → 每抓到一筆就立刻寫入 CSV**
+
+### 類別：`Job104Spider`
 
 * `__init__()`
   初始化爬蟲，建立 requests session、清空舊的錯誤紀錄，並啟動瀏覽器取得初始驗證憑證。
