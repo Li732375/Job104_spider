@@ -190,6 +190,7 @@ class Job104Spider():
 if __name__ == "__main__":
     job104_spider = Job104Spider()
 
+    # 設定篩選條件
     uni_filter_params = {
         's5': '0',  # 0:不需輪班 256:輪班
         'isnew': '3',  # (更新日期) 0:本日最新 3:三日內 7:一週內 14:兩週內 30:一個月內
@@ -205,18 +206,21 @@ if __name__ == "__main__":
         # 'wt': '1,2,4,8,16',  # (工讀類型) 1: 長期, 2: 短期, 4: 假日, 8: 寒假, 16: 暑假
     }
 
+    # 產生多重篩選條件組合
     keys = list(mul_filter_params.keys())
     values = [v.split(',') for v in mul_filter_params.values()]
     combinations = list(product(*values))
     
     alljobs_set = set()
+    # 依組合搜尋職缺 ID
     print(f"開始搜尋職缺 ID (組合數: {len(combinations)})...")
     for idx, combo in enumerate(combinations, 1):
         filter_params = {**uni_filter_params, **dict(zip(keys, combo))}
         jobs = job104_spider.search(max_num=20, filter_params=filter_params)
         alljobs_set.update(jobs)
-        print(f"進度：{(idx/len(combinations))*100:6.2f}% | 累計職缺：{len(alljobs_set)}", end='\r')
+        print(f"進度：{(idx/len(combinations))*100:6.2f} % | 累計職缺：{len(alljobs_set)}", end='\r')
 
+    # 依職缺 ID 抓取職缺詳細資料並逐筆寫入 CSV
     print(f"\n開始抓取 {len(alljobs_set)} 筆詳情...")
     output_file = f'104jobs_{time.strftime("%Y-%m-%d")}.csv'
     fieldnames = ['更新日期', '工作型態', '工作時段', '薪資類型', '最低薪資', 
@@ -233,7 +237,7 @@ if __name__ == "__main__":
             if info:
                 writer.writerow({k: info.get(k, '無') for k in fieldnames})
                 f.flush()
-            print(f"進度：{(idx/len(alljobs_set))*100:6.2f}% ({idx}/{len(alljobs_set)})", end='\r')
+            print(f"進度：{(idx/len(alljobs_set))*100:6.2f} % ({idx}/{len(alljobs_set)})", end='\r')
             time.sleep(random.uniform(0.1, 1))
 
     # 依是否有錯誤紀錄，調整輸出結果
