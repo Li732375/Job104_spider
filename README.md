@@ -17,7 +17,7 @@
   * playwright：啟動瀏覽器以取得 cookie / UA
   * playwright-stealth：降低被網站檢測自動化的機率
 
-安裝所需套件(以 pip 為例)：
+安裝所需套件（以 pip 為例）：
 
 ```bash
 pip install requests==2.32.3
