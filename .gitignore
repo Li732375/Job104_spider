@@ -1,3 +1,5 @@
 *.csv
 test.py
 ETL.py
+Origin_fork/
+__pycache__
