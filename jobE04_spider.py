@@ -266,7 +266,7 @@ class JobE04Spider():
     def fetch_jobs_and_write_csv(self, 
                                  job_ids: Set[str], 
                                  output_file: str) -> None:
-        fieldnames: List[str] = [
+        field_names_order: List[str] = [
             '更新日期', '工作型態', '工作時段', '薪資類型', '最低薪資',
             '最高薪資', '職缺名稱', '學歷', '工作經驗', '工作縣市',
             '工作里區', '工作地址', '公司名稱', '職缺描述', '其他描述',
@@ -275,13 +275,13 @@ class JobE04Spider():
         ]
 
         with open(output_file, 'w', encoding='utf-8-sig', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer = csv.DictWriter(f, fieldnames=field_names_order)
             writer.writeheader()
 
             for idx, job_id in enumerate(job_ids, 1):
                 info = self.get_job(job_id)
                 if info:
-                    writer.writerow({k: info.get(k, '無') for k in fieldnames})
+                    writer.writerow({k: info.get(k, '無') for k in field_names_order})
                     f.flush()
                 print(f"進度：{(idx/len(job_ids))*100:6.2f} % ({idx}/{len(job_ids)})", end='\r')
                 time.sleep(random.uniform(0.1, 1))
