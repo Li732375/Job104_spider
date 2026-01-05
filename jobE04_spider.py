@@ -21,18 +21,21 @@ class JobE04Spider():
         self.headers_user_agent: str = ""
         self.error_log_file: str = 'error_message.json'
 
+        # 獨立篩選條件
         self.uni_filter_params: Dict[str, str] = { 
             's5': '0',
             'isnew': '3',
             'wktm': '1',
             'ro': '1', 
         }
+        # 複合篩選條件
         self.mul_filter_params: Dict[str, str] = {
             'area': '6001001000,6001016000,6001002011',
             'jobexp': '1,3',
             'edu': '3,4,5',
             'jobcat': '2007001004,2007001020',
         }
+        # 職缺欄位順序
         self.field_names_order: List[str] = [
             '更新日期', '工作型態', '工作時段', '薪資類型', '最低薪資',
             '最高薪資', '職缺名稱', '學歷', '工作經驗', '工作縣市',
