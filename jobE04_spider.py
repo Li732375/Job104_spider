@@ -179,27 +179,30 @@ class JobE04Spider():
             job_data = resp_json.get('data')
             if not job_data or job_data.get('switch') == 'off': return None
 
-            salary_map = {10: '面議', 
-                          20: '論件計酬', 
-                          30: '時薪', 
-                          40: '日薪', 
-                          50: '有薪', 
-                          60: '年薪', 
-                          70: '其他',
-                          }
+            salary_map = {
+                10: '面議', 
+                20: '論件計酬', 
+                30: '時薪', 
+                40: '日薪', 
+                50: '有薪', 
+                60: '年薪', 
+                70: '其他',
+                }
             header = job_data.get('header', {})
             job_detail = job_data.get('jobDetail', {})
             condition = job_data.get('condition', {})
             welfare = job_data.get('welfare', {})
-
             workType = ', '.join(job_detail.get('workType', [])) or '全職'
             raw_area = job_detail.get('addressRegion', "")
             jobArea = raw_area if len(raw_area) == 3 else raw_area[3:]
+            workPeriod = job_detail.get('workPeriod', {})
+            work_shift = ' '.join(workPeriod.get('shifts', {}).keys())
+            duty_time = workPeriod.get('note', '')
             
             data_info = {
                 '更新日期': header.get('appearDate'),
                 '工作型態': workType,  
-                '工作時段': job_detail.get('workPeriod'),
+                '工作時段': f"{work_shift} {duty_time}".strip() or '無',
                 '薪資類型': salary_map.get(job_detail.get('salaryType'), '其他'),
                 '最低薪資': int(job_detail.get('salaryMin', 0)),
                 '最高薪資': int(job_detail.get('salaryMax', 0)),
