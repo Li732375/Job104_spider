@@ -92,11 +92,11 @@ class JobE04Spider():
                     time.sleep(random.uniform(5, 10))
                     attempt += 1
                     continue
-                return None, r.status_code
+                return None
             except Exception as e:
                 attempt += 1
                 time.sleep(2)
-        return None, -1
+        return None
 
     def search(self, max_num=150, filter_params=None): 
         jobs = []
@@ -111,9 +111,9 @@ class JobE04Spider():
         
         while max_num == -1 or len(jobs) < max_num:
             full_params = f'{query}&page={page}&pagesize=20'
-            r, error_code = self.fetch_with_retry(url, headers=headers, 
-                                                  params=full_params)
+            r = self.fetch_with_retry(url, headers=headers, params=full_params)
             if r is None: break
+
             try:
                 datas = r.json()
                 if 'data' not in datas: break
@@ -131,15 +131,15 @@ class JobE04Spider():
         headers = {'Referer': f'https://www.104.com.tw/job/{job_id}', 
                    'Accept': 'application/json'}
         
-        r, error_code = self.fetch_with_retry(url, headers=headers)
-        if r is None: return None, error_code
+        r = self.fetch_with_retry(url, headers=headers)
+        if r is None: return None
         
         job_data = None
 
         try:
             resp_json = r.json()
             job_data = resp_json.get('data')
-            if not job_data or job_data.get('switch') == 'off': return None, 0
+            if not job_data or job_data.get('switch') == 'off': return None
 
             salary_map = {10: '面議', 
                           20: '論件計酬', 
@@ -182,10 +182,10 @@ class JobE04Spider():
                 '公司產業類別': job_data.get('industry'),
                 '法定福利': ', '.join(welfare.get('legalTag', [])) or '無',
             }
-            return data_info, 0
+            return data_info
         except Exception as e:
             self.log_error(job_id, e, raw_data=job_data)
-            return None, -1
+            return None
 
 if __name__ == "__main__":
     job104_spider = JobE04Spider()
@@ -233,7 +233,7 @@ if __name__ == "__main__":
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         for idx, job_id in enumerate(alljobs_set, 1):
-            info, _ = job104_spider.get_job(job_id)
+            info = job104_spider.get_job(job_id)
             if info:
                 writer.writerow({k: info.get(k, '無') for k in fieldnames})
                 f.flush()
@@ -244,6 +244,6 @@ if __name__ == "__main__":
     with open('error_message.json', 'r', encoding='utf-8-sig') as f:
         errors = json.load(f)
     if errors:
-        print(f"\n任務完成！\n資料已寫入 {output_file}\n有錯誤紀錄，請查看 error_message.json")
+        print(f"\n任務完成！\n資料已寫入 {output_file}\n[錯誤]請查看 error_message.json")
     else:
         print(f"\n任務完成！\n資料已寫入 {output_file}")
