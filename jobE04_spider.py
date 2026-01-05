@@ -28,10 +28,10 @@ class JobE04Spider():
             'ro': '1', 
         }
         self._mul_filter_params: Dict[str, str] = {
-            'area': '6001016001,6001016002,6001016003,6001016004,6001016005,6001016007,6001016008,6001016011,6001016024,6001016027,6001014001,6001014002,6001014003,6001014004,6001014008,6001014014,6001001000',
+            'area': '6001001000,6001016000,6001002011',
             'jobexp': '1,3',
             'edu': '3,4,5',
-            'jobcat': '2007001004,2007001018,2007001022,2007001020,2007001012,2007001009,2007001010,2016001013',
+            'jobcat': '2007001004,2007001020',
         }
 
         # 寫入空列表，清空舊紀錄
@@ -59,7 +59,7 @@ class JobE04Spider():
         if not isinstance(value, dict):
             raise TypeError("mul_filter_params 必須是 dict")
         self._mul_filter_params = value
-        
+
     def log_error(self, 
                   job_id: str, 
                   message: Any, 
