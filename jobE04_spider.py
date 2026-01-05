@@ -59,7 +59,7 @@ class JobE04Spider():
         if not isinstance(value, dict):
             raise TypeError("mul_filter_params 必須是 dict")
         self._mul_filter_params = value
-    
+        
     def log_error(self, 
                   job_id: str, 
                   message: Any, 
