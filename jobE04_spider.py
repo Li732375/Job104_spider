@@ -8,6 +8,7 @@ import csv
 import json
 import sys
 import os
+from typing import Dict, List, Set, Tuple, Optional, Any
 from playwright.sync_api import sync_playwright
 from playwright_stealth import Stealth
 
@@ -17,8 +18,21 @@ sys.stdout.reconfigure(encoding='utf-8-sig')
 class JobE04Spider():
     def __init__(self):
         self.session = requests.Session()
-        self.user_agent = ""
-        self.error_log_file = 'error_message.json'
+        self.headers_user_agent: str = ""
+        self.error_log_file: str = 'error_message.json'
+
+        self._uni_filter_params: Dict[str, str] = { 
+            's5': '0',
+            'isnew': '3',
+            'wktm': '1',
+            'ro': '1', 
+        }
+        self._mul_filter_params: Dict[str, str] = {
+            'area': '6001016001,6001016002,6001016003,6001016004,6001016005,6001016007,6001016008,6001016011,6001016024,6001016027,6001014001,6001014002,6001014003,6001014004,6001014008,6001014014,6001001000',
+            'jobexp': '1,3',
+            'edu': '3,4,5',
+            'jobcat': '2007001004,2007001018,2007001022,2007001020,2007001012,2007001009,2007001010,2016001013',
+        }
 
         # 寫入空列表，清空舊紀錄
         with open(self.error_log_file, 'w', encoding='utf-8-sig') as f:
@@ -26,7 +40,30 @@ class JobE04Spider():
 
         self.refresh_session()
 
-    def log_error(self, job_id, message, raw_data=None):
+    @property
+    def uni_filter_params(self) -> Dict[str, str]:
+        return self._uni_filter_params
+    
+    @uni_filter_params.setter
+    def uni_filter_params(self, value: Dict[str, str]) -> None:
+        if not isinstance(value, dict):
+            raise TypeError("uni_filter_params 必須是 dict")
+        self._uni_filter_params = value
+    
+    @property
+    def mul_filter_params(self) -> Dict[str, str]:
+        return self._mul_filter_params
+    
+    @mul_filter_params.setter
+    def mul_filter_params(self, value: Dict[str, str]) -> None:
+        if not isinstance(value, dict):
+            raise TypeError("mul_filter_params 必須是 dict")
+        self._mul_filter_params = value
+    
+    def log_error(self, 
+                  job_id: str, 
+                  message: Any, 
+                  raw_data: Optional[Any]=None) -> None:
         """將錯誤訊息與原始資料存入 JSON 檔案"""
         error_entry = {
             'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -48,7 +85,7 @@ class JobE04Spider():
         with open(self.error_log_file, 'w', encoding='utf-8-sig') as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
 
-    def refresh_session(self):
+    def refresh_session(self) -> None:
         print("正在啟動隱身瀏覽器通過驗證...", end='', flush=True)
         with Stealth().use_sync(sync_playwright()) as p:
             browser = p.chromium.launch(headless=True)
@@ -65,7 +102,7 @@ class JobE04Spider():
                           )
                 # 短暫隨機等待(JavaScript 初始化完成，cookie/session 可用以及模擬真人停留時間)
                 time.sleep(random.uniform(0.5, 3))
-                self.user_agent = page.evaluate("navigator.userAgent")
+                self.headers_user_agent = page.evaluate("navigator.userAgent")
                 cookies = context.cookies()
                 for cookie in cookies:
                     self.session.cookies.set(cookie['name'], cookie['value'], 
@@ -76,34 +113,44 @@ class JobE04Spider():
             finally:
                 browser.close()
 
-    def fetch_with_retry(self, url, headers=None, params=None, max_retries=3):
+    def fetch_with_retry(self, url: str, 
+                         headers: Optional[Dict[str, str]]=None, 
+                         params: Optional[Any]=None, 
+                         max_retries: int = 3
+                         ) -> Optional[requests.Response]:
         attempt = 0
         if headers is None: headers = {}
-        headers['User-Agent'] = self.user_agent
+        headers['User-Agent'] = self.headers_user_agent
         headers['Referer'] = 'https://www.104.com.tw/'
 
         while attempt < max_retries:
             try:
                 r = self.session.get(url, headers=headers, params=params, 
                                      timeout=15)
-                if r.status_code == 200: return r, 0
+                if r.status_code == 200: return r
+
                 if r.status_code in (429, 403):
                     self.refresh_session()
                     time.sleep(random.uniform(5, 10))
                     attempt += 1
                     continue
                 return None
+            
             except Exception as e:
                 attempt += 1
                 time.sleep(2)
         return None
 
-    def search(self, max_num=150, filter_params=None): 
+    def search(self, 
+               max_num: int =150, 
+               filter_params: Optional[Dict[str, str]]=None) -> List[str]: 
         jobs = []
         query_parts = ['jobsource=index_s', 'mode=s']
+
         if filter_params:
             for k, v in filter_params.items():
                 query_parts.append(f'{k}={v}')
+
         query = '&'.join(query_parts)
         url = 'https://www.104.com.tw/jobs/search/api/jobs'
         headers = {'Accept': 'application/json, text/plain, */*'}
@@ -121,19 +168,20 @@ class JobE04Spider():
                 if page >= datas['metadata']['pagination']['lastPage']: break
                 time.sleep(random.uniform(1, 2))
                 page += 1
+                
             except Exception as e:
                 self.log_error("SEARCH", e)
                 break
+
         return jobs[:max_num]
 
-    def get_job(self, job_id):
+    def get_job(self, job_id: str) -> Optional[Dict[str, Any]]:
         url = f'https://www.104.com.tw/job/ajax/content/{job_id}'
         headers = {'Referer': f'https://www.104.com.tw/job/{job_id}', 
                    'Accept': 'application/json'}
         
         r = self.fetch_with_retry(url, headers=headers)
         if r is None: return None
-        
         job_data = None
 
         try:
@@ -183,67 +231,88 @@ class JobE04Spider():
                 '法定福利': ', '.join(welfare.get('legalTag', [])) or '無',
             }
             return data_info
+        
         except Exception as e:
             self.log_error(job_id, e, raw_data=job_data)
             return None
 
-if __name__ == "__main__":
-    job104_spider = JobE04Spider()
-
-    # 設定篩選條件
-    uni_filter_params = {
-        's5': '0',  # 0:不需輪班 256:輪班
-        'isnew': '3',  # (更新日期) 0:本日最新 3:三日內 7:一週內 14:兩週內 30:一個月內
-        'wktm': '1',
-        'ro': '1',
-    }
-
-    mul_filter_params = {
-        'area': '6001016001,6001016002,6001016003,6001016004,6001016005,6001016007,6001016008,6001016011,6001016024,6001016027,6001014001,6001014002,6001014003,6001014004,6001014008,6001014014,6001001000',  # (地區) 
-        'jobexp': '1,3',  # (經歷) 1: 不拘 / 1年以下, 3: 1-3年, 5: 3-5年, 10: 5-10年, 99: 10年以上
-        'edu': '3,4,5',  # (學歷) 1: 高中職以下, 2: 高中職, 3: 專科, 4: 大學, 5: 碩士, 6: 博士
-        'jobcat': '2007001004,2007001018,2007001022,2007001020,2007001012,2007001009,2007001010,2016001013',  # (職位類別)
-        # 'wt': '1,2,4,8,16',  # (工讀類型) 1: 長期, 2: 短期, 4: 假日, 8: 寒假, 16: 暑假
-    }
-
-    # 產生多重篩選條件組合
-    keys = list(mul_filter_params.keys())
-    values = [v.split(',') for v in mul_filter_params.values()]
-    combinations = list(product(*values))
+    def generate_filter_combinations(self, 
+                                     mul_filter_params: Dict[str, str]
+                                     ) -> Tuple[List[str], List[Tuple[str, ...]]]:
+        keys: List[str] = list(mul_filter_params.keys())
+        values: List[List[str]] = [v.split(',') for v in mul_filter_params.values()]
+        combinations: List[Tuple[str, ...]] = list(product(*values))
+        return keys, combinations
     
-    alljobs_set = set()
-    # 依組合搜尋職缺 ID
-    print(f"開始搜尋職缺 ID (組合數: {len(combinations)})...")
-    for idx, combo in enumerate(combinations, 1):
-        filter_params = {**uni_filter_params, **dict(zip(keys, combo))}
-        jobs = job104_spider.search(max_num=20, filter_params=filter_params)
-        alljobs_set.update(jobs)
-        print(f"進度：{(idx/len(combinations))*100:6.2f} % | 累計職缺：{len(alljobs_set)}", end='\r')
+    def collect_job_ids(self, 
+                        uni_filter_params: Dict[str, str], 
+                        keys: List[str], 
+                        combinations: List[Tuple[str, ...]]
+                        , max_num: int = 20
+                        ) -> Set[str]:
+        alljobs_set: Set[str] = set()
 
-    # 依職缺 ID 抓取職缺詳細資料並逐筆寫入 CSV
-    print(f"\n開始抓取 {len(alljobs_set)} 筆詳情...")
-    output_file = f'E04jobs_{time.strftime("%Y-%m-%d")}.csv'
-    fieldnames = ['更新日期', '工作型態', '工作時段', '薪資類型', '最低薪資', 
-                  '最高薪資', '職缺名稱', '學歷', '工作經驗', '工作縣市', 
-                  '工作里區', '工作地址', '公司名稱', '職缺描述', '其他描述', 
-                  '擅長要求', '證照', '駕駛執照', '出差', '104 職缺網址', 
-                  '公司產業類別', '法定福利']
+        for idx, combo in enumerate(combinations, 1):
+            filter_params: Dict[str, str] = {
+                **uni_filter_params,
+                **dict(zip(keys, combo))
+            }
+            jobs: List[str] = self.search(max_num=max_num, filter_params=filter_params)
+            alljobs_set.update(jobs)
+            print(f"進度：{(idx/len(combinations))*100:6.2f} % | 累計職缺：{len(alljobs_set)}", end='\r')
 
-    with open(output_file, 'w', encoding='utf-8-sig', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        for idx, job_id in enumerate(alljobs_set, 1):
-            info = job104_spider.get_job(job_id)
-            if info:
-                writer.writerow({k: info.get(k, '無') for k in fieldnames})
-                f.flush()
-            print(f"進度：{(idx/len(alljobs_set))*100:6.2f} % ({idx}/{len(alljobs_set)})", end='\r')
-            time.sleep(random.uniform(0.1, 1))
+        return alljobs_set
+    
+    def fetch_jobs_and_write_csv(self, 
+                                 job_ids: Set[str], 
+                                 output_file: str) -> None:
+        fieldnames: List[str] = [
+            '更新日期', '工作型態', '工作時段', '薪資類型', '最低薪資',
+            '最高薪資', '職缺名稱', '學歷', '工作經驗', '工作縣市',
+            '工作里區', '工作地址', '公司名稱', '職缺描述', '其他描述',
+            '擅長要求', '證照', '駕駛執照', '出差', '104 職缺網址',
+            '公司產業類別', '法定福利'
+        ]
+
+        with open(output_file, 'w', encoding='utf-8-sig', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+
+            for idx, job_id in enumerate(job_ids, 1):
+                info = self.get_job(job_id)
+                if info:
+                    writer.writerow({k: info.get(k, '無') for k in fieldnames})
+                    f.flush()
+                print(f"進度：{(idx/len(job_ids))*100:6.2f} % ({idx}/{len(job_ids)})", end='\r')
+                time.sleep(random.uniform(0.1, 1))
+    
+if __name__ == "__main__":
+    spider = JobE04Spider()
+
+    # 取得篩選條件
+    uni_params = spider.uni_filter_params
+    mul_params = spider.mul_filter_params
+
+    # 產生組合
+    keys, combinations = spider.generate_filter_combinations(mul_params)
+    print(f"開始搜尋職缺 ID（組合數：{len(combinations)}）")
+
+    # 搜尋職缺 ID
+    job_ids = spider.collect_job_ids(
+        uni_filter_params=uni_params,
+        keys=keys,
+        combinations=combinations,
+    )
+    print(f"共取得 {len(job_ids)} 筆職缺")
+
+    # 抓詳情並寫入 CSV (格式 2026-01-05-13-45)
+    output_file = f"job_list_{time.strftime('%Y-%m-%d-%H-%M')}.csv"
+    spider.fetch_jobs_and_write_csv(job_ids, output_file)
 
     # 依是否有錯誤紀錄，調整輸出結果
     with open('error_message.json', 'r', encoding='utf-8-sig') as f:
         errors = json.load(f)
     if errors:
-        print(f"\n任務完成！\n資料已寫入 {output_file}\n[錯誤]請查看 error_message.json")
+        print(f"\n任務完成！\n資料已寫入 {output_file}\n[錯誤] 請查看 error_message.json")
     else:
         print(f"\n任務完成！\n資料已寫入 {output_file}")
