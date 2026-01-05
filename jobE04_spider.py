@@ -21,44 +21,31 @@ class JobE04Spider():
         self.headers_user_agent: str = ""
         self.error_log_file: str = 'error_message.json'
 
-        self._uni_filter_params: Dict[str, str] = { 
+        self.uni_filter_params: Dict[str, str] = { 
             's5': '0',
             'isnew': '3',
             'wktm': '1',
             'ro': '1', 
         }
-        self._mul_filter_params: Dict[str, str] = {
+        self.mul_filter_params: Dict[str, str] = {
             'area': '6001001000,6001016000,6001002011',
             'jobexp': '1,3',
             'edu': '3,4,5',
             'jobcat': '2007001004,2007001020',
         }
+        self.field_names_order: List[str] = [
+            '更新日期', '工作型態', '工作時段', '薪資類型', '最低薪資',
+            '最高薪資', '職缺名稱', '學歷', '工作經驗', '工作縣市',
+            '工作里區', '工作地址', '公司名稱', '職缺描述', '其他描述',
+            '擅長要求', '證照', '駕駛執照', '出差', '104 職缺網址',
+            '公司產業類別', '法定福利'
+        ]
 
         # 寫入空列表，清空舊紀錄
         with open(self.error_log_file, 'w', encoding='utf-8-sig') as f:
             json.dump([], f)
 
         self.refresh_session()
-
-    @property
-    def uni_filter_params(self) -> Dict[str, str]:
-        return self._uni_filter_params
-    
-    @uni_filter_params.setter
-    def uni_filter_params(self, value: Dict[str, str]) -> None:
-        if not isinstance(value, dict):
-            raise TypeError("uni_filter_params 必須是 dict")
-        self._uni_filter_params = value
-    
-    @property
-    def mul_filter_params(self) -> Dict[str, str]:
-        return self._mul_filter_params
-    
-    @mul_filter_params.setter
-    def mul_filter_params(self, value: Dict[str, str]) -> None:
-        if not isinstance(value, dict):
-            raise TypeError("mul_filter_params 必須是 dict")
-        self._mul_filter_params = value
 
     def log_error(self, 
                   job_id: str, 
@@ -266,22 +253,14 @@ class JobE04Spider():
     def fetch_jobs_and_write_csv(self, 
                                  job_ids: Set[str], 
                                  output_file: str) -> None:
-        field_names_order: List[str] = [
-            '更新日期', '工作型態', '工作時段', '薪資類型', '最低薪資',
-            '最高薪資', '職缺名稱', '學歷', '工作經驗', '工作縣市',
-            '工作里區', '工作地址', '公司名稱', '職缺描述', '其他描述',
-            '擅長要求', '證照', '駕駛執照', '出差', '104 職缺網址',
-            '公司產業類別', '法定福利'
-        ]
-
         with open(output_file, 'w', encoding='utf-8-sig', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=field_names_order)
+            writer = csv.DictWriter(f, fieldnames=self.field_names_order)
             writer.writeheader()
 
             for idx, job_id in enumerate(job_ids, 1):
                 info = self.get_job(job_id)
                 if info:
-                    writer.writerow({k: info.get(k, '無') for k in field_names_order})
+                    writer.writerow({k: info.get(k, '無') for k in self.field_names_order})
                     f.flush()
                 print(f"進度：{(idx/len(job_ids))*100:6.2f} % ({idx}/{len(job_ids)})", end='\r')
                 time.sleep(random.uniform(0.1, 1))
