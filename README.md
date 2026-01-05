@@ -74,19 +74,29 @@ class JobE04Spider():
         self.headers_user_agent: str = ""
         self.error_log_file: str = 'error_message.json'
 
-        self._uni_filter_params: Dict[str, str] = { 
+        # 獨立篩選條件{}
+        self.uni_filter_params: Dict[str, str] = { 
             's5': '0',  # 0:不需輪班, 256:輪班
             'isnew': '3',  # 更新日期，本日最新 0, 三日內 3, ...
             'wktm': '1',  # 週休二日:有
             'ro': '1',  # 工作型態
         }
-        self._mul_filter_params: Dict[str, str] = {
+        # 複合篩選條件{}
+        self.mul_filter_params: Dict[str, str] = {
             'area': '6001001000,6001016000,6001002011',  # 工作地區:台北/高雄/新店
             's9': '1',  # 上班時段：日班 1, 夜班 2, ...
             'jobexp': '1,3',   # 經歷：不拘/1年以下 1, 1-3年 3, ...
             'edu': '3,4,5',  # 學歷：專科 3, 大學 4, 碩士 5
             'jobcat': '2007001004,2007001020',  # 職務類別:軟體工程師/AI工程師
         }
+        # 職缺欄位順序[]
+        self.field_names_order: List[str] = [
+            '更新日期', '工作型態', '工作時段', '薪資類型', '最低薪資',
+            '最高薪資', '職缺名稱', '學歷', '工作經驗', '工作縣市',
+            '工作里區', '工作地址', '公司名稱', '職缺描述', '其他描述',
+            '擅長要求', '證照', '駕駛執照', '出差', '104 職缺網址',
+            '公司產業類別', '法定福利'
+        ]
 
 ...略...
 ```
